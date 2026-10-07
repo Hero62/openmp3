@@ -1035,12 +1035,18 @@ name = "engine-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "engine-common",
  "engine-session",
+ "hex",
+ "http",
+ "http-body-util",
  "librespot-core",
  "librespot-metadata",
  "librespot-protocol",
  "log",
+ "protobuf",
+ "protobuf-json-mapping",
  "rusqlite",
  "serde",
  "serde_json",

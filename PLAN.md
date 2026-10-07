@@ -40,11 +40,12 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 1.4 ~~patch librespot free-account exit~~ — dropped: patching librespot's Premium check was blocked (and Premium is required by the spec anyway). Documented limitation: signing in with a non-Premium account makes librespot exit the process; the app will show the login account type before connecting where possible.
 
 ## Stage 2 — library data via internal endpoints + SQLite cache
-- [ ] 2.1 engine-api skeleton: single module for every internal endpoint (spclient / mercury / login5 token), typed results.
-- [ ] 2.2 rootlist (user playlists) + playlist contents (playlist4 protobuf via spclient) + track metadata batch.
-- [ ] 2.3 liked songs + saved albums (collection endpoints).
-- [ ] 2.4 search (internal search endpoint).
-- [ ] 2.5 SQLite cache (rusqlite, bundled): stale-while-revalidate, instant reads on launch.
+- [x] 2.1 engine-api: every internal endpoint in `endpoints.rs` (spclient reads w/ retry, one-shot mutations, pathfinder GraphQL w/ login5 token) — `--api-probe`: 17/17 endpoints OK against the real account.
+- [x] 2.2 rootlist + playlist contents (playlist4 protobuf) + batched extended-metadata with a per-track cache — `--api-test`: 11 playlists, contents resolved.
+- [x] 2.2b playlist editing (create/rename/add/move/remove/delete via protobuf playlist4 ops, one-shot requests) — `--api-test --edit` round trip verified order + deletion.
+- [x] 2.3 liked songs + saved albums + followed artists/shows (collection/v2 JSON) — 1051 liked (1.5 s cold, 365 ms warm), 3 albums, 28 artists; like/unlike/contains.
+- [x] 2.4 search (pathfinder `searchDesktop`, hash table overridable) — 10 each of tracks/albums/artists/playlists/shows in ~0.9 s.
+- [x] 2.5 SQLite cache (rusqlite bundled, WAL): cached liked+playlists+home read in 16 ms; refresh reports `changed` for libraryChanged events.
 
 ## Stage 3 — playback core
 - [x] 3.1 engine-queue: persistent queue (SQLite), play next / add to queue / move / remove, history, context — unit tests + `--engine-test` (user queue plays first, survives new context, persisted).
