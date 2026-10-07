@@ -41,6 +41,7 @@ impl Sink for CaptureSink {
 
         use std::sync::atomic::Ordering;
         let mut rest: &[f32] = &self.buf;
+        self.shared.note_write();
         while !rest.is_empty() {
             if self.producer.is_abandoned() {
                 return Err(SinkError::NotConnected("audio output closed".into()));
@@ -66,6 +67,7 @@ impl Sink for CaptureSink {
             let (_, remaining) = self.producer.push_partial_slice(rest);
             rest = remaining;
             if !rest.is_empty() {
+                self.shared.note_write();
                 std::thread::sleep(Duration::from_millis(5));
             }
         }

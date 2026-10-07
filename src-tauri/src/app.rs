@@ -431,6 +431,9 @@ pub async fn execute(app: &AppHandle, state: &State, theme_id: &str, cmd: Comman
         // ---------------------------------------------------------- audio / EQ
         AudioSubscribe(a) => {
             state.audio_subscribed.store(a.enabled, Ordering::Relaxed);
+            if let Some(t) = ANALYSIS_THREAD.get() {
+                t.unpark();
+            }
             Ok(Value::Null)
         }
         EqGet(_) => to_value(state.pb().await?.eq()),
@@ -750,7 +753,7 @@ pub fn start_event_forwarder(app: AppHandle, state: State) {
                     emit(&app, "playStateChanged", playback_state_json(&state, s));
                 }
                 Event::Progress { position_ms, duration_ms } => {
-                    if last_progress.elapsed() >= Duration::from_millis(1000) {
+                    if last_progress.elapsed() >= Duration::from_secs(15) {
                         last_progress = std::time::Instant::now();
                         emit(&app, "progress", json!({ "positionMs": position_ms, "durationMs": duration_ms }));
                     }
@@ -802,8 +805,16 @@ pub fn start_analysis(app: AppHandle, state: State, channel: tauri::ipc::Channel
             let mut out = Vec::with_capacity(80);
             let mut vis_check = std::time::Instant::now();
             let mut visible = true;
+            let _ = ANALYSIS_THREAD.set(std::thread::current());
             loop {
-                if vis_check.elapsed() > Duration::from_millis(500) {
+                // No theme listening: sleep until audio.subscribe wakes us (zero CPU).
+                if !state.audio_subscribed.load(Ordering::Relaxed) {
+                    shared.tap.set_enabled(false);
+                    while cons.pop().is_ok() {}
+                    std::thread::park();
+                    continue;
+                }
+                if vis_check.elapsed() > Duration::from_millis(1000) {
                     vis_check = std::time::Instant::now();
                     visible = app
                         .get_webview_window("main")
@@ -816,7 +827,7 @@ pub fn start_analysis(app: AppHandle, state: State, channel: tauri::ipc::Channel
                 if !on {
                     // drain anything left and idle
                     while cons.pop().is_ok() {}
-                    std::thread::sleep(Duration::from_millis(250));
+                    std::thread::park_timeout(Duration::from_millis(1000));
                     continue;
                 }
                 let n = cons.slots().min(buf.len());
@@ -834,6 +845,7 @@ pub fn start_analysis(app: AppHandle, state: State, channel: tauri::ipc::Channel
 }
 
 static ANALYSIS_CHANNEL: RwLock<Option<tauri::ipc::Channel<tauri::ipc::InvokeResponseBody>>> = RwLock::new(None);
+static ANALYSIS_THREAD: std::sync::OnceLock<std::thread::Thread> = std::sync::OnceLock::new();
 
 /// Start the audio engine + playback controller (background thread at startup).
 pub fn init_playback(app: &AppHandle, state: &State) -> Result<()> {

@@ -169,9 +169,9 @@ setInterval(() => {
   if (failed || document.hidden) return;
   const now = performance.now();
   if (!alive && now - loadAt > 6000) return fail("it didn't start (no response within 6 s)");
-  if (alive && now - lastPong > 8000) return fail("it stopped responding (no heartbeat for 8 s)");
+  if (alive && now - lastPong > 10000) return fail("it stopped responding (no heartbeat for 10 s)");
   post({ ping: ++pingSeq });
-}, 2000);
+}, 3000);
 
 frame.addEventListener("load", () => {
   // A theme document that failed server-side shows no hello → watchdog fires.

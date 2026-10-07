@@ -1,0 +1,20 @@
+// CPU-profile the theme frame for N seconds; print hottest functions (self time).
+const secs = Number(process.argv[2] || 3);
+const ts = await (await fetch("http://127.0.0.1:9222/json/list")).json();
+const f = ts.find((t) => t.type === "iframe" && /themeb?\.localhost/.test(t.url) && !t.url.includes("mini=1"));
+const ws = new WebSocket(f.webSocketDebuggerUrl);
+let id = 0; const pend = new Map();
+ws.onmessage = (e) => { const m = JSON.parse(e.data); if (pend.has(m.id)) { pend.get(m.id)(m.result); pend.delete(m.id); } };
+await new Promise((r) => (ws.onopen = r));
+const send = (method, params = {}) => new Promise((res) => { const i = ++id; pend.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
+await send("Profiler.enable");
+await send("Profiler.setSamplingInterval", { interval: 200 });
+await send("Profiler.start");
+await new Promise((r) => setTimeout(r, secs * 1000));
+const { profile } = await send("Profiler.stop");
+const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+const self = new Map();
+const dt = profile.timeDeltas;
+profile.samples.forEach((sid, i) => { const n = byId.get(sid); const k = `${n.callFrame.functionName || "(anon)"} ${n.callFrame.url.split("/").pop()}:${n.callFrame.lineNumber + 1}`; self.set(k, (self.get(k) || 0) + (dt[i] || 0)); });
+[...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15).forEach(([k, v]) => console.log((v / 1000).toFixed(1).padStart(8), "ms ", k));
+process.exit(0);

@@ -223,9 +223,15 @@ impl Controller {
         let mut ev0: Option<engine_audio::PlayerEventChannel> = None;
         let mut ev1: Option<engine_audio::PlayerEventChannel> = None;
         let mut ev2: Option<engine_audio::PlayerEventChannel> = None;
-        let mut tick = tokio::time::interval(Duration::from_millis(100));
-        let mut persist = tokio::time::interval(Duration::from_secs(2));
+        // CPU note: these branches are only polled when needed (see the `if`
+        // guards below), so a paused player causes no periodic wakeups.
+        let mut tick = tokio::time::interval(Duration::from_millis(250));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut persist = tokio::time::interval(Duration::from_secs(3));
+        persist.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         loop {
+            let ticking = self.state.playing || self.pending_stop.is_some();
+            let dirty = self.dirty_queue;
             tokio::select! {
                 cmd = rx.recv() => {
                     let Some(cmd) = cmd else { break };
@@ -246,8 +252,8 @@ impl Controller {
                 Some(e) = recv_opt(&mut ev0) => self.on_player_event(0, e),
                 Some(e) = recv_opt(&mut ev1) => self.on_player_event(1, e),
                 Some(e) = recv_opt(&mut ev2) => self.on_connect_event(e),
-                _ = tick.tick() => self.on_tick(),
-                _ = persist.tick() => self.persist(),
+                _ = tick.tick(), if ticking => self.on_tick(),
+                _ = persist.tick(), if dirty => self.persist(),
             }
         }
         self.persist();

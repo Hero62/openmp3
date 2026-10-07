@@ -12,7 +12,7 @@ mod win {
         Foundation::{CloseHandle, FILETIME},
         System::{
             Diagnostics::ToolHelp::{CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS},
-            ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS},
+            ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS, PROCESS_MEMORY_COUNTERS_EX2},
             Threading::{GetCurrentProcessId, GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_VM_READ},
         },
     };
@@ -32,16 +32,18 @@ mod win {
             if h.is_null() {
                 return None;
             }
-            let mut pmc: PROCESS_MEMORY_COUNTERS = std::mem::zeroed();
-            pmc.cb = size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
-            let ok = GetProcessMemoryInfo(h, &mut pmc, pmc.cb);
+            // Private working set = Task Manager's "Memory" column (shared DLL pages excluded).
+            let mut pmc: PROCESS_MEMORY_COUNTERS_EX2 = std::mem::zeroed();
+            pmc.cb = size_of::<PROCESS_MEMORY_COUNTERS_EX2>() as u32;
+            let ok = GetProcessMemoryInfo(h, &mut pmc as *mut _ as *mut PROCESS_MEMORY_COUNTERS, pmc.cb);
+
             let (mut c, mut e, mut k, mut u) = (std::mem::zeroed(), std::mem::zeroed(), std::mem::zeroed(), std::mem::zeroed());
             let ok2 = GetProcessTimes(h, &mut c, &mut e, &mut k, &mut u);
             CloseHandle(h);
             if ok == 0 {
                 return None;
             }
-            Some(Sample { ws: pmc.WorkingSetSize as u64, cpu_100ns: if ok2 != 0 { ft(k) + ft(u) } else { 0 } })
+            Some(Sample { ws: pmc.PrivateWorkingSetSize as u64, cpu_100ns: if ok2 != 0 { ft(k) + ft(u) } else { 0 } })
         }
     }
 

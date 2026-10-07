@@ -78,6 +78,13 @@ pub struct OutputShared {
     pub tap: crate::analysis::Tap,
     /// True while an output device is open.
     pub device_ok: AtomicBool,
+    /// Milliseconds (since `epoch`) of the last sink write; drives idle pausing.
+    pub last_write_ms: AtomicU64,
+    /// True while the WASAPI stream is paused because nothing is playing.
+    pub stream_idle: AtomicBool,
+    pub epoch: std::time::Instant,
+    /// The output thread, so a sink can wake it when audio arrives.
+    pub output_thread: std::sync::OnceLock<std::thread::Thread>,
 }
 
 impl OutputShared {
@@ -91,9 +98,34 @@ impl OutputShared {
             frames_out: AtomicU64::new(0),
             tap: crate::analysis::Tap::new(),
             device_ok: AtomicBool::new(false),
+            last_write_ms: AtomicU64::new(0),
+            stream_idle: AtomicBool::new(false),
+            epoch: std::time::Instant::now(),
+            output_thread: std::sync::OnceLock::new(),
         })
     }
+
+    pub fn now_ms(&self) -> u64 {
+        self.epoch.elapsed().as_millis() as u64
+    }
+
+    /// Called by sinks on every write: marks activity and wakes a paused stream.
+    #[inline]
+    pub fn note_write(&self) {
+        self.last_write_ms.store(self.now_ms(), Ordering::Relaxed);
+        if self.stream_idle.load(Ordering::Relaxed) {
+            if let Some(t) = self.output_thread.get() {
+                t.unpark();
+            }
+        }
+    }
 }
+
+/// Pause the device stream after this long without any audio being written.
+/// While paused there are no ~10 ms WASAPI callbacks and Windows can idle the device.
+const IDLE_PAUSE_MS: u64 = 5_000;
+/// How often to look for a changed default output device.
+const DEVICE_CHECK: std::time::Duration = std::time::Duration::from_secs(3);
 
 /// Owns the cpal stream on its own thread. Never fails: if no device exists
 /// yet it keeps retrying, and it rebuilds the stream when the device errors
@@ -111,16 +143,37 @@ impl AudioOutput {
         let stop2 = stop.clone();
         let consumers: Consumers = Arc::new(Mutex::new(consumers));
         let thread = std::thread::Builder::new().name("audio-out".into()).spawn(move || {
+            let _ = shared.output_thread.set(std::thread::current());
             let mut stream: Option<cpal::Stream> = None;
             let mut current_id = String::new();
             let broken = Arc::new(AtomicBool::new(false));
             let mut warned = false;
+            let mut last_device_check = std::time::Instant::now() - DEVICE_CHECK;
+            let mut default_id = String::new();
             while !stop2.load(Ordering::Relaxed) {
-                let default_id = cpal::default_host()
-                    .default_output_device()
-                    .and_then(|d| d.id().ok())
-                    .map(|id| format!("{id:?}"))
-                    .unwrap_or_default();
+                // Idle pause / resume (cheap; runs on every wake).
+                if let Some(s) = &stream {
+                    let idle_for = shared.now_ms().saturating_sub(shared.last_write_ms.load(Ordering::Relaxed));
+                    let idle = shared.stream_idle.load(Ordering::Relaxed);
+                    if !idle && idle_for > IDLE_PAUSE_MS {
+                        if s.pause().is_ok() {
+                            shared.stream_idle.store(true, Ordering::Relaxed);
+                            log::debug!("audio stream paused (idle)");
+                        }
+                    } else if idle && idle_for < IDLE_PAUSE_MS {
+                        let _ = s.play();
+                        shared.stream_idle.store(false, Ordering::Relaxed);
+                        log::debug!("audio stream resumed");
+                    }
+                }
+                if last_device_check.elapsed() >= DEVICE_CHECK || stream.is_none() || broken.load(Ordering::Relaxed) {
+                    last_device_check = std::time::Instant::now();
+                    default_id = cpal::default_host()
+                        .default_output_device()
+                        .and_then(|d| d.id().ok())
+                        .map(|id| format!("{id:?}"))
+                        .unwrap_or_default();
+                }
                 let need = stream.is_none() || broken.load(Ordering::Relaxed) || (!default_id.is_empty() && default_id != current_id);
                 if need {
                     drop(stream.take());
@@ -129,7 +182,8 @@ impl AudioOutput {
                         Ok(s) => {
                             info!("audio output ready ({default_id})");
                             stream = Some(s);
-                            current_id = default_id;
+                            shared.stream_idle.store(false, Ordering::Relaxed);
+                            current_id = default_id.clone();
                             shared.device_ok.store(true, Ordering::Relaxed);
                             warned = false;
                         }
@@ -142,7 +196,13 @@ impl AudioOutput {
                         }
                     }
                 }
-                std::thread::park_timeout(std::time::Duration::from_millis(1000));
+                // Woken early by note_write() when audio arrives while paused.
+                let wait = if stream.is_some() && !shared.stream_idle.load(Ordering::Relaxed) {
+                    std::time::Duration::from_millis(1000) // to notice "idle" promptly
+                } else {
+                    DEVICE_CHECK
+                };
+                std::thread::park_timeout(wait);
             }
             drop(stream);
         })?;

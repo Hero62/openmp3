@@ -12,7 +12,7 @@ In mp3palace, **the entire UI is a theme.** The built-in "Default" theme uses ex
 - **Blocked inside a theme:** network requests (`fetch`, XHR, WebSocket), remote URLs (images, fonts, scripts, CSS `@import`/`url()` to other hosts), `localStorage`/cookies, `eval`/`new Function`, inline event handlers (`onclick=`), access to the parent page, Tauri APIs, your files and your Spotify credentials.
 - **Allowed inside a theme:** your own bundled files (`theme.css`, `script.js`, `assets/*`), cover art through the local image proxy (`http://img.localhost/...`, which the API hands you), `data:`/`blob:` images, and `<canvas>`.
 - The only way out is `postMessage` to the host. The host checks every command against a whitelist, and the engine validates it again. Destructive actions (delete theme, remove playlist, log out) always show a native confirmation dialog outside your theme.
-- **Watchdog:** the host pings your theme every 2 s. If it doesn't start within 6 s, stops answering for 8 s, or throws more than 25 errors in its first 15 s, it is replaced with Default and the reason is shown.
+- **Watchdog:** the host pings your theme every 3 s. If it doesn't start within 6 s, stops answering for 10 s, or throws more than 25 errors in its first 15 s, it is replaced with Default and the reason is shown.
 - **Ctrl+Shift+D** always switches back to Default. It is handled natively, so a theme can't block it.
 - **Every theme extends Default.** Any token, layout setting or component your theme leaves out comes from Default, and Default's `theme.css` is loaded underneath yours. A theme can be just a `theme.json` with new colors.
 
@@ -371,7 +371,7 @@ mp3.call(cmd, args)                   // raw bridge call (whitelisted commands o
 
 - No network, no remote URLs, no `eval`/`Function`/string timers, no inline handlers, no `localStorage` (use `mp3.storage`).
 - The bridge is rate-limited to about 400 commands per second. Audio frames are pushed, so don't poll.
-- Keep the main thread responsive: the watchdog replaces a theme that freezes for 8 s.
+- Keep the main thread responsive: the watchdog replaces a theme that freezes for 10 s.
 - Don't rely on Default's internal DOM structure beyond the documented classes; override components instead.
 - Your theme must work when the user has no session (logged out) and while offline (cached data only).
 

@@ -21,9 +21,10 @@
   <section class="mp3-set-group mp3-perf">
     <h2>Performance — active theme</h2>
     <div class="mp3-perf-grid">
-      <div><b>{{cpu}}%</b><small>CPU (UI process)</small></div>
-      <div><b>{{memoryMb}} MB</b><small>Memory (UI)</small></div>
-      <div><b>{{engineMb}} MB</b><small>Memory (engine)</small></div>
+      <div><b>{{cpu}}%</b><small>CPU (UI, % of PC)</small></div>
+      <div><b>{{engineMb}} MB</b><small>Memory: mp3palace.exe</small></div>
+      <div><b>{{memoryMb}} MB</b><small>Memory: WebView2 UI</small></div>
+      <div><b>{{totalMb}} MB</b><small>Memory: total</small></div>
       <div><b>{{frameMs}} ms</b><small>Frame time (median)</small></div>
       <div><b>{{frameP95}} ms</b><small>Frame time (p95)</small></div>
       <div><b>{{heapMb}} MB</b><small>JS heap</small></div>
@@ -31,5 +32,6 @@
     </div>
   </section>
   {{/with}}
+  <p class="mp3-muted mp3-small">Memory = private working set, the same number Task Manager shows (Task Manager lists the WebView2 UI processes separately).</p>
   <p class="mp3-muted mp3-small">Ctrl+Shift+D always switches back to Default. Themes run sandboxed: no network, no files, no credentials.</p>
 </div>

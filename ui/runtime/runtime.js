@@ -51,7 +51,8 @@
     if (e.source !== parent) return;
     const m = e.data;
     if (!m || m.mp3 !== 1) return;
-    if (m.ping !== undefined) return post({ pong: m.ping, perf: perfSample() });
+    // Perf samples only while the meter (Themes page) is open.
+    if (m.ping !== undefined) return post({ pong: m.ping, perf: sampling ? perfSample() : undefined });
     if (m.id !== undefined && pending.has(m.id)) {
       const p = pending.get(m.id);
       pending.delete(m.id);
@@ -413,7 +414,7 @@
     if (r === "panel") {
       if (S.panel === "none") return;
       el.innerHTML = render("right-panel", { panel: S.panel, queue: S.queue, lyrics: S.lyrics, track: S.playback && S.playback.track });
-      if (S.panel === "lyrics") syncLyrics(true);
+      if (S.panel === "lyrics") { syncLyrics(true); startLive(); }
       return;
     }
     if (r === "sidebar") {
@@ -441,52 +442,77 @@
 
   // live-bound elements (progress, time) updated every frame without re-render
   let liveEls = [];
+  // CPU note: no requestAnimationFrame loop. The clock changes once per second,
+  // so a timer aligned to the next second boundary repaints exactly then; DOM
+  // writes are skipped when nothing changed; nothing runs while paused/hidden.
   function bindLive() {
     liveEls = $$("[data-bind]");
-    // Paint position/progress once now (the loop only runs while playing).
-    requestAnimationFrame(() => liveTick());
+    liveTick(true);
     startLive();
   }
-  let lastLive = 0;
-  let liveRunning = false;
+  let liveTimer = 0;
   function wantLive() {
     return !!(S.playback && S.playback.playing) && !document.hidden;
   }
   function startLive() {
-    if (liveRunning || !wantLive()) return;
-    liveRunning = true;
-    requestAnimationFrame(liveLoop);
+    clearTimeout(liveTimer);
+    liveTimer = 0;
+    scheduleLyrics();
+    if (!wantLive()) return;
+    const pos = positionNow();
+    // wake just after the displayed second rolls over
+    liveTimer = setTimeout(() => {
+      liveTimer = 0;
+      liveTick(false);
+      startLive();
+    }, 1000 - (pos % 1000) + 15);
   }
-  function liveLoop(t) {
-    if (!wantLive()) {
-      liveRunning = false;
-      lastLive = 0;
-      liveTick(); // settle the final position
-      return;
-    }
-    requestAnimationFrame(liveLoop);
-    if (t - lastLive < 200) return;
-    liveTick();
+  function setIfChanged(el, prop, v) {
+    if (el["_mp3" + prop] === v) return false;
+    el["_mp3" + prop] = v;
+    return true;
   }
-  function liveTick() {
-    lastLive = performance.now();
+  function liveTick(force) {
     const pos = positionNow();
     const dur = (S.playback && S.playback.durationMs) || 0;
     for (const el of liveEls) {
       switch (el.dataset.bind) {
-        case "position":
-          el.textContent = fmtTime(pos);
+        case "position": {
+          const t = fmtTime(pos);
+          if (setIfChanged(el, "t", t) || force) el.textContent = t;
           break;
-        case "remaining":
-          el.textContent = "-" + fmtTime(dur - pos);
+        }
+        case "remaining": {
+          const t = "-" + fmtTime(dur - pos);
+          if (setIfChanged(el, "t", t) || force) el.textContent = t;
           break;
-        case "progress":
-          el.style.setProperty("--progress", dur ? Math.min(1, pos / dur) : 0);
-          if (el.tagName === "INPUT" && !el.matches(":active")) el.value = dur ? Math.round((pos / dur) * 1000) : 0;
+        }
+        case "progress": {
+          // 1/1000 steps: invisible jumps, at most one repaint per second
+          const p = dur ? Math.min(1000, Math.round((pos / dur) * 1000)) : 0;
+          if (setIfChanged(el, "p", p) || force) {
+            el.style.setProperty("--progress", p / 1000);
+            if (el.tagName === "INPUT" && !el.matches(":active")) el.value = p;
+          }
           break;
+        }
       }
     }
-    if (S.panel === "lyrics" || S.route?.view === "nowPlaying") syncLyrics(false);
+  }
+  // Synced lyrics: one timer to the next line's start time (no polling).
+  let lyricsTimer = 0;
+  function scheduleLyrics() {
+    clearTimeout(lyricsTimer);
+    lyricsTimer = 0;
+    const L = S.lyrics;
+    const showing = S.panel === "lyrics" || (S.route && (S.route.view === "nowPlaying" || S.route.view === "lyrics"));
+    if (!showing || !L || !L.synced || !L.lines.length) return;
+    syncLyrics(false);
+    if (!wantLive()) return;
+    const pos = positionNow() + 150;
+    const next = L.lines.find((l) => l.startMs > pos);
+    if (!next) return;
+    lyricsTimer = setTimeout(scheduleLyrics, Math.max(30, next.startMs - pos));
   }
   document.addEventListener("visibilitychange", () => startLive());
 
@@ -553,6 +579,7 @@
     main.innerHTML = html;
     mountVirtualLists(main);
     main.scrollTop = keepScroll;
+    if (r.view === "nowPlaying" || r.view === "lyrics") startLive();
     updateTrackStates();
   }
 
@@ -824,6 +851,7 @@
         S.lyrics = l || { lines: [], synced: false, none: true };
         if (S.panel === "lyrics") renderRegion("panel");
         if (S.route && (S.route.view === "nowPlaying" || S.route.view === "lyrics")) renderRoute();
+        startLive();
       }
     } catch (e) {
       S.lyrics = { lines: [], none: true, error: e.message };
