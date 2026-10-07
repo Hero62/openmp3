@@ -39,13 +39,21 @@ impl Sink for CaptureSink {
         self.buf.clear();
         self.buf.extend(samples.iter().map(|&s| s as f32));
 
+        use std::sync::atomic::Ordering;
         let mut rest: &[f32] = &self.buf;
         while !rest.is_empty() {
             if self.producer.is_abandoned() {
                 return Err(SinkError::NotConnected("audio output closed".into()));
             }
-            if self.shared.decks[self.deck].flush.load(std::sync::atomic::Ordering::Acquire) {
-                // A seek/load is in flight; whatever we hold is stale.
+            if !self.shared.device_ok.load(Ordering::Relaxed) {
+                // No output device: hold the decoder here (acts like a pause)
+                // instead of racing through the track.
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            if self.shared.decks[self.deck].flush.load(Ordering::Acquire) {
+                // A seek/load is in flight and the callback will drain the ring;
+                // whatever we hold is stale.
                 return Ok(());
             }
             let (_, remaining) = self.producer.push_partial_slice(rest);

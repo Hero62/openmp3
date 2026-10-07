@@ -257,10 +257,8 @@
   }
   function getTemplate(name) {
     if (!tplCache.has(name)) {
-      const el = document.querySelector(`template[data-component="${CSS.escape(name)}"]`);
-      // innerHTML escapes > < & inside text, e.g. {{> partial}} becomes {{&gt; partial}}; undo that within tags.
-      const src = el ? el.innerHTML.replace(/{{[^}]*}}/g, (t) => t.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&quot;/g, "\"").replace(/&amp;/g, "&")) : null;
-      tplCache.set(name, src != null ? parseTemplate(src) : null);
+      const src = (BOOT.components || {})[name];
+      tplCache.set(name, typeof src === "string" ? parseTemplate(src) : null);
     }
     return tplCache.get(name);
   }
@@ -1505,6 +1503,11 @@
       registerAction: (name, fn) => (ACTIONS[name] = fn),
       registerView: (name, fn) => (VIEWS[name] = fn),
       registerFilter: (name, fn) => (FILTERS[name] = fn),
+      registerComponent: (name, src) => {
+        BOOT.components[name] = String(src);
+        tplCache.delete(name);
+      },
+      component: (name) => (BOOT.components || {})[name],
       registerCommand: (cmd) => COMMANDS.push(cmd),
       setList,
       toast,

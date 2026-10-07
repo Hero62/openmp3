@@ -8,8 +8,9 @@
 import { invoke, Channel } from "./vendor/tauri/core.js";
 import { listen } from "./vendor/tauri/event.js";
 
-const THEME_ORIGIN = "http://theme.localhost";
-const frame = document.getElementById("theme");
+const ORIGINS = ["http://theme.localhost", "http://themeb.localhost"];
+let originIdx = 0;
+let frame = document.getElementById("theme");
 const banner = document.getElementById("host-banner");
 
 let whitelist = new Set();
@@ -22,6 +23,8 @@ let pingSeq = 0;
 let errors = [];
 let failed = false;
 let lastPerf = 0;
+let hungRecovery = false;
+let token = ""; // host token: never leaves this module
 
 const MAX_ARGS_BYTES = 600 * 1024;
 
@@ -49,7 +52,16 @@ function post(msg, transfer) {
   frame.contentWindow.postMessage(Object.assign({ mp3: 1 }, msg), "*", transfer || []);
 }
 
-function mount(id, reason) {
+function mount(id, reason, fresh) {
+  if (fresh) {
+    // Replace the iframe element and switch origin so Chromium gives the theme
+    // a new renderer process (a hung one can't be reused).
+    originIdx = 1 - originIdx;
+    const next = frame.cloneNode(false);
+    next.removeAttribute("src");
+    frame.replaceWith(next);
+    frame = next;
+  }
   themeId = id;
   alive = false;
   failed = false;
@@ -57,7 +69,7 @@ function mount(id, reason) {
   loadAt = performance.now();
   lastPong = loadAt;
   // Cache-buster so live-link edits always reload.
-  frame.src = `${THEME_ORIGIN}/frame/${encodeURIComponent(id)}?v=${Date.now()}`;
+  frame.src = `${ORIGINS[originIdx]}/frame/${encodeURIComponent(id)}?v=${Date.now()}`;
   if (reason) showBanner(reason);
 }
 
@@ -67,10 +79,11 @@ function fail(reason) {
   if (themeId === "default") {
     // Default itself misbehaving: reload it once rather than loop.
     showBanner("The UI stopped responding and was reloaded. " + reason, 0);
-    setTimeout(() => mount("default"), 500);
+    setTimeout(() => mount("default", null, true), 300);
     return;
   }
-  invoke("theme_failed", { id: themeId, reason }).catch(() => mount("default", reason));
+  hungRecovery = true;
+  invoke("theme_failed", { id: themeId, reason, token }).catch(() => mount("default", reason, true));
 }
 
 // ------------------------------------------------------------------ theme → host
@@ -93,7 +106,7 @@ window.addEventListener("message", async (e) => {
     lastPong = performance.now();
     if (m.perf && performance.now() - lastPerf > 2000) {
       lastPerf = performance.now();
-      invoke("perf_report", { sample: m.perf }).catch(() => {});
+      invoke("perf_report", { sample: m.perf, token }).catch(() => {});
     }
     return;
   }
@@ -122,7 +135,7 @@ window.addEventListener("message", async (e) => {
   if (size > MAX_ARGS_BYTES) return reply(false, { code: "invalid", message: "args too large" });
 
   try {
-    const result = await invoke("bridge_call", { cmd: m.cmd, args, themeId });
+    const result = await invoke("bridge_call", { cmd: m.cmd, args, themeId, token });
     reply(true, result === undefined ? null : result);
   } catch (err) {
     const e2 = typeof err === "object" && err ? err : { code: "failed", message: String(err) };
@@ -137,7 +150,9 @@ listen("bridge:event", (ev) => {
 });
 listen("host:reload-theme", (ev) => {
   const p = ev.payload || {};
-  mount(p.id || "default", p.reason);
+  const fresh = hungRecovery;
+  hungRecovery = false;
+  mount(p.id || "default", p.reason, fresh);
 });
 
 // Audio analysis frames: binary from Rust, transferred (zero-copy) into the frame.
@@ -146,7 +161,7 @@ const audio = new Channel((msg) => {
   if (!buf) return;
   post({ audio: buf }, [buf]);
 });
-invoke("audio_channel", { channel: audio }).catch((e) => console.warn("audio channel", e));
+
 
 // ------------------------------------------------------------------ watchdog
 setInterval(() => {
@@ -166,7 +181,10 @@ frame.addEventListener("load", () => {
 (async () => {
   try {
     const init = await invoke("host_init");
+    token = init.token || "";
+    if (!token) showBanner("Host token unavailable — reload the window (Ctrl+R).", 0);
     whitelist = new Set(init.commands || []);
+    invoke("audio_channel", { channel: audio, token }).catch((e) => console.warn("audio channel", e));
     mount(init.themeId || "default", init.fallbackReason);
   } catch (e) {
     console.error(e);

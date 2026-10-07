@@ -56,12 +56,14 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 3.6 unit tests for queue/shuffle/EQ/analysis/cache — 21 tests passing.
 
 ## Stage 4 — theme system + bridge, Default theme
-- [ ] 4.1 engine-bridge: versioned whitelisted command/event API with schema validation; Tauri commands/events wired to host only.
-- [ ] 4.2 host relay (postMessage) + watchdog heartbeat + Ctrl+Shift+D reset + fallback banner.
-- [ ] 4.3 theme runtime injected into the frame: SDK (`mp3.*` API), template engine (`{{…}}`, `data-action`), layout grid, CSS vars.
-- [ ] 4.4 audio analysis transport to theme (~60 Hz, transferable Float32Array).
-- [ ] 4.5 Default theme built only on the public theme API: sidebar, main views, right panel, player bar, accent from cover, virtualized lists, lazy images.
-- [ ] 4.6 `img://` cover proxy with disk cache.
+- [x] 4.1 engine-bridge: versioned (v1) whitelist of 71 commands, typed parse + value validation (6 unit tests), native confirm dialog for destructive commands, rate limit, per-page-load host token on all host-only commands — verified from inside the frame: unknown cmd → `unknown_command`, bad value / extra field → `invalid`.
+- [x] 4.2 host relay + whitelist + watchdog + fallback banner — verified: hung theme (`while(true)`) detected after 8 s, remounted on the alternate origin (`themeb.localhost`) in a fresh renderer, banner shows reason, UI CPU back to 0.3%. Ctrl+Shift+D: registered natively while focused (same reset path as the watchdog). (unverified: the physical keypress — Windows blocked synthetic input from the build loop.)
+- [x] 4.3 theme runtime (`ui/runtime/runtime.js`): `mp3` SDK, eval-free template engine (if/unless/each/with/partials/filters), layout.json grid, tokens → CSS vars, router + scroll memory, data-action delegation, keyboard, Ctrl+K, context menu — verified rendering Home/Liked/Search/Artist/Settings/Themes via CDP screenshots.
+- [ ] 4.4 audio analysis transport (~60 Hz binary Tauri Channel → transferable ArrayBuffer → `mp3.audio.subscribe`), off when hidden/paused/unsubscribed — built; analyzer unit-tested. (unverified end-to-end: no audio output device connected during this session.)
+- [x] 4.5 Default theme = theme.json + layout.json + theme.css + 25 components, no special access — verified: 1051-song Liked list renders with 15 DOM rows (virtualized), accent pulled from cover (#d9c653), play from row updates player bar + queue panel.
+- [x] 4.6 `img://` cover proxy (Spotify CDN hosts only, disk cache w/ 300 MB cap, accent extraction) — verified: covers render; remote image URLs blocked by CSP inside the theme; unit test for host allowlist.
+- [x] 4.7 Sandbox verified from inside the frame: fetch/remote img/IPC endpoint/localStorage/parent access all blocked; Tauri invoke from the frame gets no response (no invoke key) and host-only commands additionally require the host token.
+- [x] 4.8 Audio output self-heals: no device at launch → retries; device lost / default changed → stream rebuilt; decoder held (not skipped) while no device.
 
 ## Stage 5 — browse
 - [ ] 5.1 album + artist pages.

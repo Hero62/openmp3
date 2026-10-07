@@ -26,7 +26,7 @@
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data:",
         "connect-src": "ipc: http://ipc.localhost",
-        "frame-src": "http://theme.localhost theme:",
+        "frame-src": "http://theme.localhost theme: http://themeb.localhost themeb:",
         "object-src": "'none'",
         "base-uri": "'none'"
       }

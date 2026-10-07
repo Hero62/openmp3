@@ -43,6 +43,8 @@ pub struct AppState {
     pub audio_shared: OnceCell<Arc<engine_audio::OutputShared>>,
     pub fallback_reason: RwLock<Option<String>>,
     pub perf: RwLock<Value>,
+    /// Host token: issued once per main-page load, required by host-only commands.
+    pub host_token: std::sync::Mutex<(String, bool)>,
 }
 
 pub type State = Arc<AppState>;
@@ -75,6 +77,7 @@ impl AppState {
             audio_shared: OnceCell::new(),
             fallback_reason: RwLock::new(None),
             perf: RwLock::new(Value::Null),
+            host_token: std::sync::Mutex::new((String::new(), false)),
         }))
     }
 
@@ -97,6 +100,27 @@ impl AppState {
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
+    }
+
+    /// Called on every main-frame page load: the next host_init may claim a fresh token.
+    pub fn reset_host_token(&self) {
+        let mut t = self.host_token.lock().unwrap();
+        *t = (format!("{:016x}{:016x}", fastrand::u64(..), fastrand::u64(..)), false);
+    }
+
+    /// Hand out the token once per page load.
+    pub fn claim_host_token(&self) -> Option<String> {
+        let mut t = self.host_token.lock().unwrap();
+        if t.1 || t.0.is_empty() {
+            return None;
+        }
+        t.1 = true;
+        Some(t.0.clone())
+    }
+
+    pub fn check_host_token(&self, token: &str) -> bool {
+        let t = self.host_token.lock().unwrap();
+        t.1 && !t.0.is_empty() && t.0 == token
     }
 
     pub fn settings(&self) -> Settings {
@@ -681,8 +705,24 @@ pub fn start_event_forwarder(app: AppHandle, state: State) {
         let pb = state.pb_wait().await.clone();
         let mut rx = pb.subscribe();
         let mut last_progress = std::time::Instant::now();
+        let mut device_tick = tokio::time::interval(Duration::from_secs(2));
+        let mut device_warned = false;
         loop {
-            let ev = match rx.recv().await {
+            let ev = tokio::select! {
+                ev = rx.recv() => ev,
+                _ = device_tick.tick() => {
+                    let ok = state.audio_shared.get().map(|s| s.device_ok.load(Ordering::Relaxed)).unwrap_or(true);
+                    if !ok && pb.state().playing && !device_warned {
+                        device_warned = true;
+                        emit(&app, "error", json!({ "message": "No audio output device. Connect speakers or headphones; playback resumes automatically." }));
+                    }
+                    if ok {
+                        device_warned = false;
+                    }
+                    continue;
+                }
+            };
+            let ev = match ev {
                 Ok(e) => e,
                 Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
                 Err(_) => break,

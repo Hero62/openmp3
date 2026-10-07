@@ -18,10 +18,10 @@ use tauri::{
 use crate::{app::State, themes};
 
 pub const THEME_CSP: &str = "default-src 'none'; \
-    script-src http://theme.localhost theme:; \
-    style-src http://theme.localhost theme: 'unsafe-inline'; \
-    img-src http://theme.localhost theme: http://img.localhost img: data: blob:; \
-    font-src http://theme.localhost theme: data:; \
+    script-src http://theme.localhost theme: http://themeb.localhost themeb:; \
+    style-src http://theme.localhost theme: http://themeb.localhost themeb: 'unsafe-inline'; \
+    img-src http://theme.localhost theme: http://themeb.localhost themeb: http://img.localhost img: data: blob:; \
+    font-src http://theme.localhost theme: http://themeb.localhost themeb: data:; \
     media-src 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; \
     object-src 'none'; base-uri 'none'; form-action 'none'; \
     frame-ancestors http://tauri.localhost tauri://localhost";

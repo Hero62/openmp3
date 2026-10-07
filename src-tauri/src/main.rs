@@ -51,7 +51,15 @@ fn main() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(state.clone())
+        .on_page_load(|webview, payload| {
+            if webview.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started {
+                webview.app_handle().state::<State>().reset_host_token();
+            }
+        })
         .register_uri_scheme_protocol("theme", |ctx, request| theme_protocol::handle(ctx.app_handle(), &request))
+        // Second, interchangeable origin: after a hang the host remounts the theme here,
+        // forcing a fresh renderer process instead of the stuck one.
+        .register_uri_scheme_protocol("themeb", |ctx, request| theme_protocol::handle(ctx.app_handle(), &request))
         .register_asynchronous_uri_scheme_protocol("img", |_ctx, request, responder| img_protocol::handle(request, responder))
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -142,7 +150,11 @@ async fn bridge_call(
     cmd: String,
     args: Value,
     theme_id: String,
+    token: String,
 ) -> Result<Value, engine_bridge::BridgeError> {
+    if !state.check_host_token(&token) {
+        return Err(engine_bridge::BridgeError::new("forbidden", "bad host token"));
+    }
     {
         let mut w = CALL_WINDOW.lock().unwrap();
         if w.map(|t| t.elapsed().as_secs() >= 1).unwrap_or(true) {
@@ -173,6 +185,7 @@ async fn bridge_call(
 /// Host page asks which theme to load (and whether we fell back last time).
 #[tauri::command]
 fn host_init(state: tauri::State<'_, State>) -> Value {
+    let token = state.claim_host_token();
     let s = state.settings();
     let id = if state.themes.load(&s.theme).is_ok() { s.theme.clone() } else { themes::DEFAULT_ID.to_string() };
     let reason = state.fallback_reason.read().unwrap().clone().or_else(|| {
@@ -183,6 +196,7 @@ fn host_init(state: tauri::State<'_, State>) -> Value {
         "fallbackReason": reason,
         "commands": engine_bridge::COMMAND_NAMES,
         "apiVersion": engine_bridge::API_VERSION,
+        "token": token,
     })
 }
 
@@ -197,18 +211,27 @@ fn host_ready(window: tauri::WebviewWindow, via: String) {
 
 /// The host's watchdog reports a crashed / hung / invalid theme.
 #[tauri::command]
-fn theme_failed(app: tauri::AppHandle, id: String, reason: String) {
+fn theme_failed(app: tauri::AppHandle, state: tauri::State<'_, State>, id: String, reason: String, token: String) {
+    if !state.check_host_token(&token) {
+        return;
+    }
     warn!("theme {id} failed: {reason}");
     let reason: String = reason.chars().take(500).collect();
     reset_theme(&app, &format!("Theme “{id}” stopped working: {reason}"));
 }
 
 #[tauri::command]
-fn perf_report(state: tauri::State<'_, State>, sample: Value) {
+fn perf_report(state: tauri::State<'_, State>, sample: Value, token: String) {
+    if !state.check_host_token(&token) {
+        return;
+    }
     *state.perf.write().unwrap() = sample;
 }
 
 #[tauri::command]
-fn audio_channel(app: tauri::AppHandle, state: tauri::State<'_, State>, channel: tauri::ipc::Channel<tauri::ipc::InvokeResponseBody>) {
+fn audio_channel(app: tauri::AppHandle, state: tauri::State<'_, State>, channel: tauri::ipc::Channel<tauri::ipc::InvokeResponseBody>, token: String) {
+    if !state.check_host_token(&token) {
+        return;
+    }
     app::start_analysis(app, Arc::clone(&state), channel);
 }

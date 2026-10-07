@@ -53,7 +53,7 @@ async function page() {
 async function evalIn(js, inFrame) {
   const { target, all } = await page();
   if (inFrame) {
-    const f = all.find((t) => t.type === "iframe" && /theme\.localhost/.test(t.url));
+    const f = all.find((t) => t.type === "iframe" && /themeb?\.localhost/.test(t.url));
     if (f) {
       const c = await connect(f.webSocketDebuggerUrl);
       const r = await c.send("Runtime.evaluate", { expression: js, awaitPromise: true, returnByValue: true });

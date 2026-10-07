@@ -588,11 +588,11 @@ impl ThemeManager {
                 ));
             }
         }
-        let mut templates = String::new();
-        for (name, html) in &t.components {
-            templates.push_str(&format!("<template data-component=\"{name}\">{html}</template>\n"));
-        }
-        let boot_json = serde_json::to_string(boot).unwrap_or_default().replace("</", "<\\/");
+        // Component sources travel as raw strings inside the (non-executed) boot
+        // JSON, never through the HTML parser, so {{…}} inside tags stays intact.
+        let mut boot = boot.clone();
+        boot["components"] = serde_json::to_value(&t.components).unwrap_or_default();
+        let boot_json = serde_json::to_string(&boot).unwrap_or_default().replace("</", "<\\/").replace("<!--", "<\\!--");
         let theme_css = if t.has_css { format!("<link rel=\"stylesheet\" href=\"/t/{}/theme.css\">", t.id) } else { String::new() };
         // Custom themes get Default's stylesheet underneath their own.
         let base_theme_css = if t.id != DEFAULT_ID {
@@ -606,7 +606,7 @@ impl ThemeManager {
 <link rel=\"stylesheet\" href=\"/rt/base.css\">{base_theme_css}\
 <style id=\"mp3-tokens\">{tokens}{faces}</style>{theme_css}\
 <script type=\"application/json\" id=\"mp3-boot\">{boot_json}</script>\
-</head><body>\n{templates}<div id=\"mp3-root\"></div>\
+</head><body>\n<div id=\"mp3-root\"></div>\
 <script src=\"/rt/runtime.js\"></script>{script}</body></html>"
         )
     }
@@ -676,7 +676,7 @@ mod tests {
         let t = m.load(DEFAULT_ID).unwrap();
         assert!(t.components.contains_key("player-bar"));
         let html = m.frame_html(&t, &json!({"x": "</script>"}));
-        assert!(html.contains("<template data-component=\"track-row\">"));
+        assert!(html.contains("\"track-row\":"));
         assert!(!html.contains("\"x\":\"</script>\""));
     }
 
