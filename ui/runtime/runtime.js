@@ -1,4 +1,4 @@
-/* mp3palace theme runtime (API v1).
+/* openmp3 theme runtime (API v1).
  *
  * Runs inside the sandboxed theme frame for EVERY theme, including Default.
  * It has no special powers: everything goes through postMessage to the host,

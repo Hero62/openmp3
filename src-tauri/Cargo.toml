@@ -23,7 +23,7 @@ anyhow = "1"
 thiserror = "2"
 
 [package]
-name = "mp3palace"
+name = "openmp3"
 version.workspace = true
 edition.workspace = true
 publish = false

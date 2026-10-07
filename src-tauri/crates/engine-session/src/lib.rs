@@ -50,9 +50,9 @@ const OAUTH_SCOPES: &[&str] = &[
     "user-top-read",
 ];
 
-const OAUTH_DONE_PAGE: &str = "<!doctype html><meta charset=utf-8><title>mp3palace</title>\
+const OAUTH_DONE_PAGE: &str = "<!doctype html><meta charset=utf-8><title>openmp3</title>\
 <body style=\"background:#121212;color:#eee;font:16px system-ui;display:grid;place-items:center;height:100vh;margin:0\">\
-<div>Signed in. You can close this tab and go back to mp3palace.</div>";
+<div>Signed in. You can close this tab and go back to openmp3.</div>";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SessionState {

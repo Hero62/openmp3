@@ -451,7 +451,7 @@ impl ThemeManager {
                 if rel == "theme.json" {
                     let mut m: Value = serde_json::from_slice(&b)?;
                     m["name"] = json!(name.chars().take(60).collect::<String>());
-                    if m.get("author").map(|a| a == "mp3palace").unwrap_or(false) {
+                    if m.get("author").and_then(|a| a.as_str()).map(|a| a == engine_common::APP_NAME || a == engine_common::LEGACY_APP_DIR).unwrap_or(false) {
                         m["author"] = json!("me");
                     }
                     b = serde_json::to_vec_pretty(&m)?;

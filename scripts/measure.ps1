@@ -1,16 +1,16 @@
-# Measure mp3palace (whole process tree: engine + WebView2 processes).
+# Measure openmp3 (whole process tree: engine + WebView2 processes).
 #   powershell -ExecutionPolicy Bypass -File scripts/measure.ps1 [-Mode idle|playing|tray] [-Runs 2] [-Settle 25]
 # Memory = Task Manager "Memory" column (private working set), summed over the tree.
 # CPU    = % of the whole machine and % of one core, sampled over 15 s.
 # "playing" starts playback through Windows' media controls (same path as media keys).
 param(
-  [string]$Exe = "$PSScriptRoot\..\src-tauri\target\release\mp3palace.exe",
+  [string]$Exe = "$PSScriptRoot\..\src-tauri\target\release\openmp3.exe",
   [ValidateSet("idle", "playing", "tray")] [string]$Mode = "idle",
   [int]$Runs = 2,
   [int]$Settle = 25
 )
 $ErrorActionPreference = "Stop"
-$startupFile = Join-Path $env:LOCALAPPDATA "mp3palace\last_startup_ms.txt"
+$startupFile = Join-Path $env:LOCALAPPDATA "openmp3\last_startup_ms.txt"
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 Add-Type @"
 using System; using System.Runtime.InteropServices;
@@ -18,9 +18,9 @@ public class MeasureW { [DllImport("user32.dll")] public static extern bool Post
 "@
 
 function Stop-App {
-  Get-Process mp3palace -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process openmp3 -ErrorAction SilentlyContinue | Stop-Process -Force
   Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" |
-    Where-Object { $_.CommandLine -like '*webview-exe-name=mp3palace.exe*' } |
+    Where-Object { $_.CommandLine -like '*webview-exe-name=openmp3.exe*' } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
   Start-Sleep -Milliseconds 1500
 }
@@ -40,7 +40,7 @@ function Get-TreeInfo([int]$root) {
 }
 
 function Kind($p) {
-  if ($p.Name -eq 'mp3palace.exe') { return 'engine' }
+  if ($p.Name -eq 'openmp3.exe') { return 'engine' }
   if ($p.CommandLine -match '--utility-sub-type=([a-zA-Z]+)\.') { return 'utility:' + $matches[1] }
   if ($p.CommandLine -match '--type=([a-z-]+)') { return $matches[1] }
   'webview-browser'
@@ -51,7 +51,7 @@ function Smtc-Play {
   function Await($op, [Type]$t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); $task.Wait(5000) | Out-Null; $task.Result }
   [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
   $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
-  $s = $mgr.GetSessions() | Where-Object { $_.SourceAppUserModelId -like 'mp3palace*' } | Select-Object -First 1
+  $s = $mgr.GetSessions() | Where-Object { $_.SourceAppUserModelId -like 'openmp3*' } | Select-Object -First 1
   if (-not $s) { return "no SMTC session" }
   Await ($s.TryPlayAsync()) ([bool]) | Out-Null
   Start-Sleep -Seconds 3

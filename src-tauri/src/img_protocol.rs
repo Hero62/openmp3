@@ -24,7 +24,7 @@ pub fn init(cache_dir: PathBuf) {
     let _ = CACHE_DIR.set(cache_dir.clone());
     let _ = CLIENT.set(
         reqwest::Client::builder()
-            .user_agent(concat!("mp3palace/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("openmp3/", env!("CARGO_PKG_VERSION")))
             .timeout(std::time::Duration::from_secs(15))
             .build()
             .expect("http client"),

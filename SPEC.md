@@ -111,5 +111,5 @@ Lossless, DJ, Jam, offline downloads, video podcasts/music videos, Wrapped, frie
 - When finished (or if you run out of context), write HANDOFF.md: what's done, what's verified, measured RAM/startup numbers, known issues, and exact next steps, so I can paste it into a new session.
 
 ## Repo notes (added by the build loop)
-- This repo is `Hero62/mp3palace` (private). It satisfies stage 0's "new private git repo".
-- App name lives in one constant; set it to "mp3palace" to match the repo (spec's working name was "spotify-lite").
+- This repo is `Hero62/openmp3` (private). It satisfies stage 0's "new private git repo".
+- App name lives in one constant; set it to "openmp3" to match the repo (spec's working name was "spotify-lite").

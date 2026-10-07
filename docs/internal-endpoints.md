@@ -1,4 +1,4 @@
-# Spotify internal endpoints: reference for mp3palace (librespot 0.8.0)
+# Spotify internal endpoints: reference for openmp3 (librespot 0.8.0)
 
 _Researched 2026-10-07. Sources: the librespot-core/-protocol/-metadata 0.8.0 crate source in `~/.cargo/registry`, go-librespot (devgianlu, commit from 2026-10-03), SpotAPI (Aran404, 2026-10-04), and the live Spotify web player bundle as of today (`web-player.246acca4.js` plus 158 lazy chunks, clientVersion `1.3.5.193.g5b0b36b9d478`). I pulled every pathfinder hash in this doc out of that bundle today._
 

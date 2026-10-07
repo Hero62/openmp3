@@ -1,6 +1,6 @@
 {
   "name": "Default",
-  "author": "mp3palace",
+  "author": "openmp3",
   "version": "1.0.0",
   "apiVersion": 1,
   "description": "The built-in dark theme. Every other theme inherits anything it leaves out from this one.",

@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn queue_survives_reopen() {
-        let dir = std::env::temp_dir().join(format!("mp3palace-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("openmp3-test-{}", std::process::id()));
         let path = dir.join("state.sqlite");
         {
             let s = StateStore::open(&path).unwrap();

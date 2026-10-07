@@ -1,4 +1,4 @@
-//! Spotify Connect device: lets the phone see and control mp3palace.
+//! Spotify Connect device: lets the phone see and control openmp3.
 //!
 //! librespot's `Spirc` wants its own session (it connects it itself) and its
 //! own `Player`. We give it a dedicated session with a stable device id and a

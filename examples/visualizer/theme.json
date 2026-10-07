@@ -1,6 +1,6 @@
 {
   "name": "Spectrum",
-  "author": "mp3palace examples",
+  "author": "openmp3 examples",
   "version": "1.0.0",
   "apiVersion": 1,
   "description": "Neon theme with the player bar on top and a live audio visualizer (layer 4: script.js).",

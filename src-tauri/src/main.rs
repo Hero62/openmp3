@@ -143,7 +143,7 @@ fn main() {
             audio_channel
         ])
         .run(tauri::generate_context!())
-        .expect("error while running mp3palace");
+        .expect("error while running openmp3");
 }
 
 fn reset_theme(app: &tauri::AppHandle, reason: &str) {
@@ -193,7 +193,7 @@ async fn bridge_call(
             engine_bridge::Command::SessionLogout(_) => "Log out of Spotify on this PC?".to_string(),
             _ => "Are you sure?".to_string(),
         };
-        if !theme_cmds::confirm(&app, "mp3palace", &what).await {
+        if !theme_cmds::confirm(&app, "openmp3", &what).await {
             return Err(engine_bridge::BridgeError::new("cancelled", "cancelled"));
         }
     }

@@ -1,8 +1,8 @@
-# HANDOFF — mp3palace
+# HANDOFF — openmp3
 
 _Version **1.0.1** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
 
-mp3palace is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`.
+openmp3 is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`. It was renamed from **mp3palace** after v1.0.1; `engine-common` moves the old `%APPDATA%`/`%LOCALAPPDATA%` `mp3palace` folders to `openmp3` on first start (`LEGACY_APP_DIR`).
 
 ## Status
 **Stages 0–8 are done and verified.** One item is still open and blocked on you: **4.4**, the end-to-end check of live audio-analysis frames. It needs an audio output device to be connected. No device was available for the second half of the session.
@@ -52,7 +52,7 @@ How to measure: `powershell -ExecutionPolicy Bypass -File scripts/measure.ps1` g
 1. **Connect an audio output device, then play something** to close 4.4. Also check:
    - the Spectrum theme's live visualizer: import `examples/Spectrum.theme`, then Ctrl+K → "Open visualizer"
    - that the crossfade sounds smooth
-2. **Spotify Connect:** open Spotify on your phone → Devices → "mp3palace". Play to it and control it from the phone.
+2. **Spotify Connect:** open Spotify on your phone → Devices → "openmp3". Play to it and control it from the phone.
 3. **Physical keys:**
    - **Ctrl+Shift+D** resets to Default.
    - **Global hotkeys:** Ctrl+Alt+Home is play/pause (Ctrl+Alt+Space and Ctrl+Alt+P are taken by another app on this PC), Ctrl+Alt+→/← is next/previous, Ctrl+Alt+↑/↓ is volume, Ctrl+Alt+L is like.
@@ -73,13 +73,13 @@ How to measure: `powershell -ExecutionPolicy Bypass -File scripts/measure.ps1` g
   ```bash
   cd src-tauri && cargo build --release
   ```
-  The exe ends up at `src-tauri/target/release/mp3palace.exe`.
+  The exe ends up at `src-tauri/target/release/openmp3.exe`.
 - **Dev loop:**
   - `scripts/rebuild-run.sh` runs the debug build with CDP on port 9222. Debug builds read `themes/default` and `ui/runtime` from disk, so reload the frame instead of recompiling.
   - `node scripts/cdp.mjs shot out.png` takes a screenshot.
   - `node scripts/cdp.mjs eval "<js>" frame` runs JS in the theme, with the `mp3` SDK available.
 - **Headless checks:**
-  - `mp3palace.exe --play-test [uri] [secs]`
+  - `openmp3.exe --play-test [uri] [secs]`
   - `--engine-test`
   - `--api-probe`
   - `--api-test [--edit]`

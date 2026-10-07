@@ -1,8 +1,8 @@
-# mp3palace theme guide (API v1)
+# openmp3 theme guide (API v1)
 
-This is a complete reference for building mp3palace themes. It is written so that a person, or an AI agent you paste it into, can build a full UI replacement without reading the app's source.
+This is a complete reference for building openmp3 themes. It is written so that a person, or an AI agent you paste it into, can build a full UI replacement without reading the app's source.
 
-In mp3palace, **the entire UI is a theme.** The built-in "Default" theme uses exactly the system described here, with no special access. Anything Default does, your theme can do or replace.
+In openmp3, **the entire UI is a theme.** The built-in "Default" theme uses exactly the system described here, with no special access. Anything Default does, your theme can do or replace.
 
 ---
 

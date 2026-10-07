@@ -52,7 +52,7 @@ async fn lrclib(state: &State, uri: &str) -> Result<Option<Lyrics>> {
     let Some(t) = map.get(uri) else { return Ok(None) };
     let artist = t.artists.first().map(|a| a.name.clone()).unwrap_or_default();
     let client = reqwest::Client::builder()
-        .user_agent(concat!("mp3palace/", env!("CARGO_PKG_VERSION"), " (personal player)"))
+        .user_agent(concat!("openmp3/", env!("CARGO_PKG_VERSION"), " (personal player)"))
         .timeout(std::time::Duration::from_secs(8))
         .build()?;
     let resp = client

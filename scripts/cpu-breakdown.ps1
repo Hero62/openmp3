@@ -1,10 +1,10 @@
-# Per-process (and per-thread for the engine) CPU of the running mp3palace tree over N seconds.
+# Per-process (and per-thread for the engine) CPU of the running openmp3 tree over N seconds.
 param([int]$Seconds = 15)
-$root = (Get-Process mp3palace | Select-Object -First 1).Id
+$root = (Get-Process openmp3 | Select-Object -First 1).Id
 $all = Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId, Name, CommandLine
 $ids = @($root); $changed = $true
 while ($changed) { $changed = $false; foreach ($p in $all) { if ($ids -contains [int]$p.ParentProcessId -and -not ($ids -contains [int]$p.ProcessId)) { $ids += [int]$p.ProcessId; $changed = $true } } }
-function Kind($p) { if ($p.Name -eq 'mp3palace.exe') { 'engine' } elseif ($p.CommandLine -match '--utility-sub-type=([a-zA-Z]+)\.') { 'utility:' + $matches[1] } elseif ($p.CommandLine -match '--type=([a-z-]+)') { $matches[1] } else { 'webview-browser' } }
+function Kind($p) { if ($p.Name -eq 'openmp3.exe') { 'engine' } elseif ($p.CommandLine -match '--utility-sub-type=([a-zA-Z]+)\.') { 'utility:' + $matches[1] } elseif ($p.CommandLine -match '--type=([a-z-]+)') { $matches[1] } else { 'webview-browser' } }
 $t0 = @{}; foreach ($id in $ids) { $t0[$id] = (Get-Process -Id $id).TotalProcessorTime.TotalMilliseconds }
 $th0 = @{}; foreach ($t in (Get-Process -Id $root).Threads) { $th0[$t.Id] = $t.TotalProcessorTime.TotalMilliseconds }
 Start-Sleep -Seconds $Seconds

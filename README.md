@@ -2,12 +2,12 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg">
     <source media="(prefers-color-scheme: light)" srcset=".github/assets/banner-light.svg">
-    <img alt="mp3palace — A lightweight, fully themeable Spotify player for Windows" src=".github/assets/banner-light.svg" width="100%">
+    <img alt="openmp3 — A lightweight, fully themeable Spotify player for Windows" src=".github/assets/banner-light.svg" width="100%">
   </picture>
 </p>
 
 <p align="center">
-  <b>mp3palace</b> is a fast, low-memory Spotify client for Windows that you sign into with your own Premium account.
+  <b>openmp3</b> is a fast, low-memory Spotify client for Windows that you sign into with your own Premium account.
   It starts in about half a second, plays 320&nbsp;kbps audio through its own Rust engine, and its entire UI is a sandboxed theme you can replace.
 </p>
 
@@ -27,22 +27,25 @@
 </p>
 
 <p align="center">
-  <img alt="mp3palace showing the OK Computer album page, with the play queue on the right and the player bar at the bottom" src=".github/assets/album.webp" width="100%">
+  <img alt="openmp3 showing the OK Computer album page, with the play queue on the right and the player bar at the bottom" src=".github/assets/album.webp" width="100%">
 </p>
 
 > [!IMPORTANT]
 > This is a **personal-use** project. It needs a **Spotify Premium** account; librespot quits on Free accounts. It is not affiliated with or endorsed by Spotify.
 
+> [!NOTE]
+> openmp3 was called **mp3palace** up to v1.0.1. On first start it moves your old `%APPDATA%\mp3palace` and `%LOCALAPPDATA%\mp3palace` folders to `openmp3`, so your login, settings, queue and themes carry over. If you used the old installer, uninstall "mp3palace" from Windows Settings afterwards.
+
 ## Why
 
-The official desktop app is a full Chromium bundle that idles at hundreds of megabytes, nags, and adds itself to startup. mp3palace keeps only what's needed for everyday listening. It uses the system WebView2 for the UI and a native Rust engine for login, streaming, the queue and audio.
+The official desktop app is a full Chromium bundle that idles at hundreds of megabytes, nags, and adds itself to startup. openmp3 keeps only what's needed for everyday listening. It uses the system WebView2 for the UI and a native Rust engine for login, streaming, the queue and audio.
 
 **Measured on the dev PC** (release build, Default theme, `scripts/measure.ps1`, 2026-10-07):
 
 | | Result |
 |---|---|
 | Cold start to usable UI (cached library) | ~0.4–0.5 s |
-| Memory, window open (Task Manager, all processes) | ~115 MB (the `mp3palace.exe` engine itself is ~15–19 MB) |
+| Memory, window open (Task Manager, all processes) | ~115 MB (the `openmp3.exe` engine itself is ~15–19 MB) |
 | Memory, closed to tray | ~27 MB |
 | CPU idle / paused | ~0.2 % of one core |
 | CPU while playing | ~7 % of one core (~0.4 % of the whole PC) |
@@ -80,17 +83,17 @@ All library, search, home and lyrics data comes from Spotify's **internal** endp
 
 ## Build and run
 
-**Download:** grab the installer (`mp3palace_<version>_x64-setup.exe`) or the portable exe from the [latest release](https://github.com/Hero62/mp3palace/releases/latest). Builds are unsigned, so Windows SmartScreen may ask you to confirm (More info → Run anyway). Checksums are in `SHA256SUMS.txt`.
+**Download:** grab the `x64-setup.exe` installer or the `portable.exe` from the [latest release](https://github.com/Hero62/openmp3/releases/latest). Builds are unsigned, so Windows SmartScreen may ask you to confirm (More info → Run anyway). Checksums are in `SHA256SUMS.txt`.
 
 **Build from source requirements:** Windows 11 (WebView2 is preinstalled), [Rust](https://rustup.rs) (the repo pins the MSVC toolchain in `rust-toolchain.toml`), and the Visual Studio 2022 Build Tools with the C++ workload.
 
 ```bash
-git clone https://github.com/Hero62/mp3palace.git
-cd mp3palace/src-tauri
+git clone https://github.com/Hero62/openmp3.git
+cd openmp3/src-tauri
 cargo build --release
 ```
 
-Then run `src-tauri/target/release/mp3palace.exe` (about 11 MB). On first launch, click **Log in to Spotify** in the sidebar. The sign-in happens in your browser through Spotify's own OAuth page; mp3palace never sees your password and caches only Spotify's reusable token in `%APPDATA%\mp3palace`.
+Then run `src-tauri/target/release/openmp3.exe` (about 11 MB). On first launch, click **Log in to Spotify** in the sidebar. The sign-in happens in your browser through Spotify's own OAuth page; openmp3 never sees your password and caches only Spotify's reusable token in `%APPDATA%\openmp3`.
 
 <details>
 <summary><b>Development workflow</b></summary>
@@ -102,7 +105,7 @@ node scripts/cdp.mjs eval "mp3.nowPlaying" frame   # run JS inside the theme san
 cd src-tauri && cargo test --workspace      # unit tests
 ```
 
-Debug builds read `themes/default/` and `ui/runtime/` from disk, so reloading the frame picks up UI changes without recompiling. Headless checks: `mp3palace.exe --play-test`, `--engine-test`, `--api-probe`, `--api-test`. `scripts/measure.ps1 -Mode idle|playing|tray` reproduces the numbers above.
+Debug builds read `themes/default/` and `ui/runtime/` from disk, so reloading the frame picks up UI changes without recompiling. Headless checks: `openmp3.exe --play-test`, `--engine-test`, `--api-probe`, `--api-test`. `scripts/measure.ps1 -Mode idle|playing|tray` reproduces the numbers above.
 
 </details>
 
@@ -133,7 +136,7 @@ flowchart LR
     theme["Theme sandbox<br/>(iframe, strict CSP)<br/>runtime + Default theme"]
     theme <-- postMessage --> host
   end
-  subgraph Engine["mp3palace.exe (Rust)"]
+  subgraph Engine["openmp3.exe (Rust)"]
     bridge["engine-bridge<br/>validated commands"]
     api["engine-api<br/>internal endpoints + SQLite cache"]
     queue["engine-queue"]

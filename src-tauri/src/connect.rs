@@ -1,4 +1,4 @@
-//! Spotify Connect device (shows up on the phone as "mp3palace").
+//! Spotify Connect device (shows up on the phone as "openmp3").
 
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
 

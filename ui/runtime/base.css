@@ -1,4 +1,4 @@
-/* mp3palace runtime base styles: structure only. Visual styling lives in the
+/* openmp3 runtime base styles: structure only. Visual styling lives in the
  * theme (Default's theme.css is loaded under every custom theme). */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }

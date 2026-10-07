@@ -1,5 +1,5 @@
 //! Headless developer commands (no window), e.g.
-//! `mp3palace.exe --play-test [spotify:track:...] [seconds]`.
+//! `openmp3.exe --play-test [spotify:track:...] [seconds]`.
 
 use std::time::{Duration, Instant};
 
@@ -330,9 +330,9 @@ pub async fn api_test(edit: bool) -> Result<()> {
     eprintln!("[api] CACHED liked={} playlists={} home={} in {} µs", liked.map(|l| l.0.len()).unwrap_or(0), pl.map(|l| l.0.len()).unwrap_or(0), home.map(|l| l.0.len()).unwrap_or(0), t0.elapsed().as_micros());
 
     if edit {
-        let name = "mp3palace test (delete me)";
+        let name = "openmp3 test (delete me)";
         let Some(uri) = t!("pl create", api.playlist_create(name).await, |u: &String| u.clone()) else { return Ok(()) };
-        t!("pl rename", api.playlist_rename(&uri, "mp3palace test (renamed)").await, |_: &()| "ok".to_string());
+        t!("pl rename", api.playlist_rename(&uri, "openmp3 test (renamed)").await, |_: &()| "ok".to_string());
         let tracks = vec![TEST_TRACK.to_string(), "spotify:track:0VjIjW4GlUZAMYd2vXMi3b".into(), "spotify:track:7qiZfU4dY1lWllzX7mPBI3".into()];
         t!("pl add", api.playlist_add(&uri, &tracks, None).await, |_: &()| "ok".to_string());
         t!("pl move", api.playlist_move(&uri, 2, 1, 0).await, |_: &()| "ok".to_string());

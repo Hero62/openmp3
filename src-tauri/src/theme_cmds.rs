@@ -22,7 +22,7 @@ pub async fn import(app: &AppHandle, state: &State) -> Result<Value, BridgeError
     app.dialog()
         .file()
         .set_title("Import theme")
-        .add_filter("mp3palace theme", &["theme", "zip"])
+        .add_filter("openmp3 theme", &["theme", "zip"])
         .pick_file(move |f| {
             let _ = tx.send(f);
         });
@@ -79,7 +79,7 @@ pub async fn export(app: &AppHandle, state: &State, id: &str) -> Result<Value, B
         .file()
         .set_title("Export theme")
         .set_file_name(format!("{}.theme", name.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")))
-        .add_filter("mp3palace theme", &["theme"])
+        .add_filter("openmp3 theme", &["theme"])
         .save_file(move |f| {
             let _ = tx.send(f);
         });

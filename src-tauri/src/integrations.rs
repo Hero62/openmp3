@@ -72,7 +72,7 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         menu::{Menu, MenuItem, PredefinedMenuItem},
         tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     };
-    let show = MenuItem::with_id(app, "show", "Show mp3palace", true, None::<&str>)?;
+    let show = MenuItem::with_id(app, "show", "Show openmp3", true, None::<&str>)?;
     let play = MenuItem::with_id(app, "toggle", "Play / Pause", true, None::<&str>)?;
     let next = MenuItem::with_id(app, "next", "Next", true, None::<&str>)?;
     let prev = MenuItem::with_id(app, "prev", "Previous", true, None::<&str>)?;

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mp3palace",
-  "identifier": "com.hero62.mp3palace",
+  "productName": "openmp3",
+  "identifier": "com.hero62.openmp3",
   "build": {
     "frontendDist": "../ui/host"
   },
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "mp3palace",
+        "title": "openmp3",
         "width": 1280,
         "height": 800,
         "minWidth": 360,

@@ -1,4 +1,4 @@
-// mp3palace host page.
+// openmp3 host page.
 //
 // The ONLY trusted page. It loads the active theme into a sandboxed iframe
 // (opaque origin, strict CSP, no IPC), relays whitelisted commands from the

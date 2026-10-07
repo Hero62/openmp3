@@ -1,4 +1,4 @@
-# mp3palace — build plan
+# openmp3 — build plan
 
 Source of truth for requirements: [SPEC.md](SPEC.md). Status/handoff: [HANDOFF.md](HANDOFF.md).
 Tick a box only after it has been built **and verified** (how it was verified goes after the item).
@@ -28,7 +28,7 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - **UI:** vanilla JS, no framework, no build step.
 
 ## Stage 0 — repo + scaffold
-- [x] Private repo `Hero62/mp3palace`, `.gitignore`, MSVC toolchain pin — pushed.
+- [x] Private repo `Hero62/openmp3`, `.gitignore`, MSVC toolchain pin — pushed.
 - [x] Tauri v2 workspace in `src-tauri/` with crates `engine-{common,session,api,audio,queue,connect,bridge}` — `cargo build` OK.
 - [x] Host page + sandboxed theme frame on `theme://` with CSP header; window shown only after theme hello — verified via `scripts/smoke.sh` log `[host] ready via hello`.
 - [x] PLAN.md, README.md, HANDOFF.md.
@@ -36,7 +36,7 @@ Tick a box only after it has been built **and verified** (how it was verified go
 ## Stage 1 — login + one track through the custom sink
 - [x] 1.1 engine-session: OAuth login (browser), credential cache in app data dir, reconnect from cache on launch — verified: browser login → `Authenticated as …`, credentials.json cached; stable device_id file.
 - [x] 1.2 engine-audio: custom librespot `Sink` → ring buffer → cpal output (WASAPI default device), 320 kbps — verified with 1.3.
-- [x] 1.3 dev command `mp3palace.exe --play-test <track uri>` plays a hardcoded track — verified: peak 0.41 / RMS logged at the cpal callback for 25 s, **user confirmed audible playback** (2026-10-07).
+- [x] 1.3 dev command `openmp3.exe --play-test <track uri>` plays a hardcoded track — verified: peak 0.41 / RMS logged at the cpal callback for 25 s, **user confirmed audible playback** (2026-10-07).
 - [x] 1.4 ~~patch librespot free-account exit~~ — dropped: patching librespot's Premium check was blocked (and Premium is required by the spec anyway). Documented limitation: signing in with a non-Premium account makes librespot exit the process; the app will show the login account type before connecting where possible.
 
 ## Stage 2 — library data via internal endpoints + SQLite cache
@@ -52,7 +52,7 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 3.2 shuffle bag (no repeats until exhausted) + "spread out artists"; repeat off/all/one — unit tests (uniformity, no-repeat bag, spread halves same-artist adjacency).
 - [x] 3.3 gapless (preload on TimeToPreloadNextTrack) + crossfade (dual player, equal-power ramps in the output callback) + normalization config — `--engine-test`: gapless change→playing 0 ms, 4 s crossfade hands over decks. (unverified by ear: crossfade smoothness; normalization is librespot's, enabled by default.)
 - [x] 3.4 10-band biquad EQ (RBJ, auto anti-clip preamp) with 11 presets + sanitizing; analysis (RMS, 2048-pt realfft → 64 log bins, beat detect) with lock-free tap that costs nothing when disabled — unit tests. User presets storage + 60 Hz transport land in 4.4.
-- [x] 3.5 audio file cache with size cap (librespot Cache, %LOCALAPPDATA%/mp3palace/audio, 1 GB default) — verified files written; cached start 430 ms vs 740 ms uncached (rest is per-play metadata + audio key round trips).
+- [x] 3.5 audio file cache with size cap (librespot Cache, %LOCALAPPDATA%/openmp3/audio, 1 GB default) — verified files written; cached start 430 ms vs 740 ms uncached (rest is per-play metadata + audio key round trips).
 - [x] 3.6 unit tests for queue/shuffle/EQ/analysis/cache — 21 tests passing.
 
 ## Stage 4 — theme system + bridge, Default theme
@@ -72,7 +72,7 @@ Tick a box only after it has been built **and verified** (how it was verified go
 
 ## Stage 6 — integrations
 - [x] 6.1 lyrics: Spotify color-lyrics (59 synced lines shown in the panel), LRCLIB fallback (request shape verified against the live API; LRC parser unit-tested), local romanization (kana/Hangul/Cyrillic/Greek — BTS "Spring Day": 59/61 lines romanized), optional translation via MyMemory (off by default; verified 59 lines translated then switched back off). Kanji/Hanzi not romanized (needs a dictionary).
-- [x] 6.2 Spotify Connect: dedicated Connect session (own stable device id) + third output deck; controller mirrors remote state and routes UI controls to Spirc while the phone is in charge; local play takes control back — verified: device registers (`Spotify Connect device registered as "mp3palace"`, Spirc cluster listener up). (unverified: seeing/controlling it from the phone — needs the user and an audio device.)
+- [x] 6.2 Spotify Connect: dedicated Connect session (own stable device id) + third output deck; controller mirrors remote state and routes UI controls to Spirc while the phone is in charge; local play takes control back — verified: device registers (`Spotify Connect device registered as "openmp3"`, Spirc cluster listener up). (unverified: seeing/controlling it from the phone — needs the user and an audio device.)
 - [x] 6.3 SMTC + taskbar buttons — verified through Windows' own GlobalSystemMediaTransportControlsSessionManager: session shows title/artist/thumbnail/status; pause/play/toggle/next from Windows change app state (same path as media keys). Taskbar prev/play-pause/next buttons (code-drawn icons) verified by posting THBN_CLICKED.
 - [x] 6.4 global hotkeys (configurable, re-registered on change; 6/6 registered — default play/pause moved to Ctrl+Alt+Home because Ctrl+Alt+Space/P are taken on this PC), in-app shortcuts (Space/arrows/Ctrl+arrows/S/R/M/Q/Y/Ctrl+L/Ctrl+F/Alt+arrows), Ctrl+K command bar with fuzzy search + live search results — verified with DOM key events. (unverified: physical global hotkey press — synthetic OS input doesn't reach the desktop from the build loop.)
 - [x] 6.5 tray (menu: show/play-pause/next/prev/mini/quit; close → tray verified: window hidden via Win32, process alive; second launch restores it via single-instance), mini player (themeable `mini-player` component, always-on-top setting; screenshot verified), compact mode (single-column layout.json `compact`; screenshot), scroll memory (6000 px restored after Home → back).
@@ -91,4 +91,4 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 8.1 startup to usable UI (theme ready, cached library shown): **~405 ms** (release, 3 cold runs: 414/399/406 ms; `scripts/measure.ps1`). Session reconnects in the background.
 - [x] 8.2 idle RAM (Task Manager "memory" = private working set, whole tree): **~116–126 MB** visible (engine 14 MB, WebView2 rest), **88 MB** closed to tray (WebView2 MemoryUsageTargetLevel=Low). Idle/paused CPU **0.02–0.12 %**. Done via `--disable-gpu --js-flags=--lite-mode --disable-background-networking --disable-component-update`, rAF loops only while needed. (Raw working set incl. shared pages ≈ 480 MB; private bytes ≈ 180 MB.)
 - [x] 8.3 audited: no Run key (HKCU/HKLM), no startup-folder shortcut, no scheduled task, no updater plugin/service; error states (offline / connecting / logged out / login failed in the sidebar, no-audio-device toast, theme fallback banner) verified by injecting session events; Settings covers quality, crossfade, normalization, autoplay, cache size, EQ + presets, home sections, lyrics (LRCLIB/romanize/translate), hotkeys, window, themes.
-- [x] 8.4 release build (`src-tauri/target/release/mp3palace.exe`, 11.2 MB, LTO, opt-level s) + HANDOFF.md final numbers.
+- [x] 8.4 release build (`src-tauri/target/release/openmp3.exe`, 11.2 MB, LTO, opt-level s) + HANDOFF.md final numbers.

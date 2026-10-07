@@ -3113,40 +3113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mp3palace"
-version = "1.0.1"
-dependencies = [
- "anyhow",
- "engine-api",
- "engine-audio",
- "engine-bridge",
- "engine-common",
- "engine-connect",
- "engine-queue",
- "engine-session",
- "env_logger",
- "fastrand",
- "log",
- "notify",
- "regex",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-single-instance",
- "tokio",
- "webview2-com",
- "windows 0.62.2",
- "windows-sys 0.61.2",
- "zip",
- "zune-jpeg",
-]
-
-[[package]]
 name = "muda"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3687,6 +3653,40 @@ checksum = "aa576c76302b7b808eecc68061e67336c47833ef9d22caa74dda10fa9675eebc"
 dependencies = [
  "is-wsl",
  "libc",
+]
+
+[[package]]
+name = "openmp3"
+version = "1.0.1"
+dependencies = [
+ "anyhow",
+ "engine-api",
+ "engine-audio",
+ "engine-bridge",
+ "engine-common",
+ "engine-connect",
+ "engine-queue",
+ "engine-session",
+ "env_logger",
+ "fastrand",
+ "log",
+ "notify",
+ "regex",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-single-instance",
+ "tokio",
+ "webview2-com",
+ "windows 0.62.2",
+ "windows-sys 0.61.2",
+ "zip",
+ "zune-jpeg",
 ]
 
 [[package]]
