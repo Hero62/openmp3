@@ -21,7 +21,9 @@ use librespot_playback::{
 };
 
 pub use librespot_playback::player::{PlayerEvent, PlayerEventChannel};
-pub use output::{OutputShared, NUM_DECKS, SAMPLE_RATE};
+pub use librespot_playback;
+pub use librespot_metadata::audio as librespot_playback_metadata;
+pub use output::{OutputShared, CONNECT_DECK, LOCAL_DECKS, NUM_DECKS, SAMPLE_RATE};
 
 /// ~186 ms of stereo audio per deck: small enough that skips feel instant,
 /// large enough to ride out scheduler hiccups.
@@ -60,7 +62,7 @@ impl AudioEngine {
             consumers.push(c);
         }
         let output = output::AudioOutput::start(shared.clone(), consumers)?;
-        Ok(Self { shared, _output: output, producers, players: vec![None, None], config })
+        Ok(Self { shared, _output: output, producers, players: (0..NUM_DECKS).map(|_| None).collect(), config })
     }
 
     fn player_config(&self) -> PlayerConfig {
@@ -82,7 +84,7 @@ impl AudioEngine {
 
     /// Attach (or re-attach after reconnect) a session; creates players on first call.
     pub fn attach_session(&mut self, session: &Session) {
-        for deck in 0..NUM_DECKS {
+        for deck in 0..LOCAL_DECKS {
             if let Some(p) = &self.players[deck] {
                 p.set_session(session.clone());
                 continue;
@@ -94,6 +96,22 @@ impl AudioEngine {
             });
             self.players[deck] = Some(player);
         }
+    }
+
+    /// Create the Spotify Connect deck's player, bound to the Connect session.
+    pub fn create_connect_player(&mut self, session: &Session) -> Option<Arc<Player>> {
+        let deck = CONNECT_DECK;
+        if let Some(p) = &self.players[deck] {
+            p.set_session(session.clone());
+            return Some(p.clone());
+        }
+        let producer = self.producers[deck].take()?;
+        let shared = self.shared.clone();
+        let player = Player::new(self.player_config(), session.clone(), Box::new(NoOpVolume), move || {
+            Box::new(sink::CaptureSink::new(producer, deck, shared))
+        });
+        self.players[deck] = Some(player.clone());
+        Some(player)
     }
 
     pub fn player(&self, deck: usize) -> Option<&Arc<Player>> {
@@ -109,6 +127,7 @@ impl AudioEngine {
         let uri = SpotifyUri::from_uri(uri).map_err(|e| anyhow::anyhow!("bad uri {uri}: {e}"))?;
         if let Some(p) = self.player(deck) {
             self.flush(deck);
+            self.shared.decks[deck].hold_release.store(!start_playing, Ordering::Release);
             p.load(uri, start_playing, position_ms);
         }
         Ok(())
@@ -153,12 +172,14 @@ impl AudioEngine {
 
     pub fn play(&self, deck: usize) {
         if let Some(p) = self.player(deck) {
+            self.shared.decks[deck].hold_release.store(false, Ordering::Release);
             p.play();
         }
     }
 
     pub fn pause(&self, deck: usize) {
         if let Some(p) = self.player(deck) {
+            self.shared.decks[deck].hold_release.store(true, Ordering::Release);
             p.pause();
         }
     }

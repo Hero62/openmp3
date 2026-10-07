@@ -325,3 +325,13 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
 
 /* sidebar placeholder art keeps its fixed size */
 .mp3-side-art.mp3-art-blank { width: 44px; height: 44px; }
+
+/* mini player window */
+.mp3-mini { display: block; padding: 0; gap: 0; background: var(--surface); }
+.mp3-mini-inner { display: flex; gap: 12px; align-items: center; height: 100vh; padding: 10px 12px; }
+.mp3-mini-cover { width: calc(100vh - 20px); max-width: 120px; aspect-ratio: 1; border-radius: 6px; object-fit: cover; background: var(--surface-2); flex: none; }
+.mp3-mini-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mp3-mini-title { font-weight: 700; }
+.mp3-mini-artist { font-size: .85em; color: var(--text-muted); }
+.mp3-mini-controls { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.mp3-mini-progress { height: 3px; border-radius: 2px; margin-top: 6px; background: linear-gradient(to right, var(--accent) calc(var(--progress, 0) * 100%), var(--elevated) 0); }

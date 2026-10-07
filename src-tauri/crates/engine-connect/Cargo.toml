@@ -5,4 +5,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-serde.workspace = true
+librespot-connect.workspace = true
+librespot-core.workspace = true
+librespot-playback.workspace = true
+anyhow.workspace = true

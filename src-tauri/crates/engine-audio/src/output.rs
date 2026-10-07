@@ -19,7 +19,10 @@ use crate::dsp::DspChain;
 
 pub const SAMPLE_RATE: u32 = 44_100;
 pub const CHANNELS: usize = 2;
-pub const NUM_DECKS: usize = 2;
+/// Decks 0/1: local playback (crossfade pairs). Deck 2: Spotify Connect.
+pub const NUM_DECKS: usize = 3;
+pub const LOCAL_DECKS: usize = 2;
+pub const CONNECT_DECK: usize = 2;
 
 /// f32 stored as bits so the callback can read it lock-free.
 #[derive(Default)]
@@ -47,6 +50,9 @@ pub struct DeckShared {
     pub flush: AtomicBool,
     /// Frames the callback has consumed from this deck (for position sync).
     pub frames_played: AtomicU64,
+    /// Set while the engine has asked this deck's player to pause/stop, so a
+    /// sink waiting for an output device lets the player thread go.
+    pub hold_release: AtomicBool,
 }
 
 impl Default for DeckShared {
@@ -55,7 +61,8 @@ impl Default for DeckShared {
             fade_pos: AtomicF32::new(1.0),
             fade_target: AtomicF32::new(1.0),
             fade_step: AtomicF32::new(0.0),
-            flush: AtomicBool::new(false), frames_played: AtomicU64::new(0) }
+            flush: AtomicBool::new(false),
+            hold_release: AtomicBool::new(false), frames_played: AtomicU64::new(0) }
     }
 }
 

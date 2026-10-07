@@ -1,0 +1,14 @@
+<div class="mp3-mini-inner">
+  {{#if cover}}<img class="mp3-mini-cover" src="{{cover}}" alt="">{{else}}<span class="mp3-mini-cover"></span>{{/if}}
+  <div class="mp3-mini-body">
+    <div class="mp3-mini-title mp3-truncate">{{#if track}}{{track.title}}{{else}}Nothing playing{{/if}}</div>
+    <div class="mp3-mini-artist mp3-truncate">{{track.artists | artists}}</div>
+    <div class="mp3-mini-controls">
+      <button class="mp3-icon-btn" data-action="prev" title="Previous"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M6 5h2v14H6zm3.5 7L19 5v14z"/></svg></button>
+      <button class="mp3-play-btn" data-action="toggle" title="Play/Pause">{{#if playing}}<svg viewBox="0 0 24 24" class="mp3-icon"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>{{else}}<svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg>{{/if}}</button>
+      <button class="mp3-icon-btn" data-action="next" title="Next"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M16 5h2v14h-2zM5 5l9.5 7L5 19z"/></svg></button>
+      <button class="mp3-icon-btn mp3-like {{#if liked}}mp3-on{{/if}}" data-action="like" data-uri="{{track.uri}}" title="Like"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 20.3 10.6 19C5.4 14.4 2 11.3 2 7.5 2 4.4 4.4 2 7.5 2c1.7 0 3.4.8 4.5 2.1C13.1 2.8 14.8 2 16.5 2 19.6 2 22 4.4 22 7.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg></button>
+    </div>
+    <div class="mp3-mini-progress" data-bind="progress"></div>
+  </div>
+</div>

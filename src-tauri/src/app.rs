@@ -44,7 +44,7 @@ pub struct AppState {
     pub fallback_reason: RwLock<Option<String>>,
     pub perf: RwLock<Value>,
     /// Host token: issued once per main-page load, required by host-only commands.
-    pub host_token: std::sync::Mutex<(String, bool)>,
+    pub host_token: std::sync::Mutex<std::collections::HashMap<String, (String, bool)>>,
 }
 
 pub type State = Arc<AppState>;
@@ -77,7 +77,7 @@ impl AppState {
             audio_shared: OnceCell::new(),
             fallback_reason: RwLock::new(None),
             perf: RwLock::new(Value::Null),
-            host_token: std::sync::Mutex::new((String::new(), false)),
+            host_token: std::sync::Mutex::new(Default::default()),
         }))
     }
 
@@ -103,24 +103,25 @@ impl AppState {
     }
 
     /// Called on every main-frame page load: the next host_init may claim a fresh token.
-    pub fn reset_host_token(&self) {
+    pub fn reset_host_token(&self, window: &str) {
         let mut t = self.host_token.lock().unwrap();
-        *t = (format!("{:016x}{:016x}", fastrand::u64(..), fastrand::u64(..)), false);
+        t.insert(window.to_string(), (format!("{:016x}{:016x}", fastrand::u64(..), fastrand::u64(..)), false));
     }
 
-    /// Hand out the token once per page load.
-    pub fn claim_host_token(&self) -> Option<String> {
+    /// Hand out a window's token once per page load.
+    pub fn claim_host_token(&self, window: &str) -> Option<String> {
         let mut t = self.host_token.lock().unwrap();
-        if t.1 || t.0.is_empty() {
+        let e = t.get_mut(window)?;
+        if e.1 || e.0.is_empty() {
             return None;
         }
-        t.1 = true;
-        Some(t.0.clone())
+        e.1 = true;
+        Some(e.0.clone())
     }
 
     pub fn check_host_token(&self, token: &str) -> bool {
         let t = self.host_token.lock().unwrap();
-        t.1 && !t.0.is_empty() && t.0 == token
+        !token.is_empty() && t.values().any(|(k, claimed)| *claimed && k == token)
     }
 
     pub fn settings(&self) -> Settings {
@@ -145,8 +146,8 @@ fn to_value<T: Serialize>(v: T) -> Result<Value, BridgeError> {
 /// Emit an event to the host page (which relays it into the theme frame).
 pub fn emit(app: &AppHandle, event: &str, data: Value) {
     let _ = app.emit_to("main", "bridge:event", json!({ "event": event, "data": data }));
-    if let Some(w) = app.get_webview_window("mini") {
-        let _ = w.emit("bridge:event", json!({ "event": event, "data": data }));
+    if app.get_webview_window("mini").is_some() {
+        let _ = app.emit_to("mini", "bridge:event", json!({ "event": event, "data": data }));
     }
 }
 

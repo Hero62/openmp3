@@ -11,6 +11,7 @@ import { listen } from "./vendor/tauri/event.js";
 const ORIGINS = ["http://theme.localhost", "http://themeb.localhost"];
 let originIdx = 0;
 let frame = document.getElementById("theme");
+const MINI = new URLSearchParams(location.search).get("mini") === "1";
 const banner = document.getElementById("host-banner");
 
 let whitelist = new Set();
@@ -69,7 +70,7 @@ function mount(id, reason, fresh) {
   loadAt = performance.now();
   lastPong = loadAt;
   // Cache-buster so live-link edits always reload.
-  frame.src = `${ORIGINS[originIdx]}/frame/${encodeURIComponent(id)}?v=${Date.now()}`;
+  frame.src = `${ORIGINS[originIdx]}/frame/${encodeURIComponent(id)}?v=${Date.now()}${MINI ? "&mini=1" : ""}`;
   if (reason) showBanner(reason);
 }
 

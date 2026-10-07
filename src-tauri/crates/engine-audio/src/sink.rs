@@ -47,7 +47,14 @@ impl Sink for CaptureSink {
             }
             if !self.shared.device_ok.load(Ordering::Relaxed) {
                 // No output device: hold the decoder here (acts like a pause)
-                // instead of racing through the track.
+                // instead of racing through the track — unless the engine wants
+                // the player thread back (pause/seek/load), then drop this packet.
+                let deck = &self.shared.decks[self.deck];
+                // No callback is running to consume the flush, so do it here:
+                // drop this (stale) packet once, then go back to holding.
+                if deck.flush.swap(false, Ordering::AcqRel) || deck.hold_release.load(Ordering::Acquire) {
+                    return Ok(());
+                }
                 std::thread::sleep(Duration::from_millis(50));
                 continue;
             }

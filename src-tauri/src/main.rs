@@ -52,8 +52,8 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(state.clone())
         .on_page_load(|webview, payload| {
-            if webview.label() == "main" && payload.event() == tauri::webview::PageLoadEvent::Started {
-                webview.app_handle().state::<State>().reset_host_token();
+            if (webview.label() == "main" || webview.label() == "mini") && payload.event() == tauri::webview::PageLoadEvent::Started {
+                webview.app_handle().state::<State>().reset_host_token(webview.label());
             }
         })
         .register_uri_scheme_protocol("theme", |ctx, request| theme_protocol::handle(ctx.app_handle(), &request))
@@ -78,6 +78,7 @@ fn main() {
                 app::start_event_forwarder(h2.clone(), s2.clone());
                 hotkeys::register(&h2, &s2.settings().hotkeys);
             })?;
+            integrations::init(&handle);
             app::start_session(handle.clone(), state.clone());
             if let Some(dir) = state.themes.live_dir.read().unwrap().clone() {
                 theme_cmds::watch(&handle, &dir);
@@ -184,8 +185,8 @@ async fn bridge_call(
 
 /// Host page asks which theme to load (and whether we fell back last time).
 #[tauri::command]
-fn host_init(state: tauri::State<'_, State>) -> Value {
-    let token = state.claim_host_token();
+fn host_init(window: tauri::WebviewWindow, state: tauri::State<'_, State>) -> Value {
+    let token = state.claim_host_token(window.label());
     let s = state.settings();
     let id = if state.themes.load(&s.theme).is_ok() { s.theme.clone() } else { themes::DEFAULT_ID.to_string() };
     let reason = state.fallback_reason.read().unwrap().clone().or_else(|| {

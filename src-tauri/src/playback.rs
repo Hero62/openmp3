@@ -44,6 +44,12 @@ pub enum Cmd {
     SetCrossfade(u32),
     /// Autoplay results for the context that just ended.
     ExtendContext(Vec<Track>),
+    /// Create the Spotify Connect deck's player on the Connect session.
+    CreateConnectPlayer(Session, tokio::sync::oneshot::Sender<Option<Arc<engine_audio::librespot_playback::player::Player>>>),
+    /// Connect is up: route controls here while the phone is in charge.
+    SetRemote(Arc<dyn engine_connect::RemoteControl>),
+    /// Volume changed from the Connect side: apply locally without echoing back.
+    RemoteVolume(f32),
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
@@ -61,6 +67,9 @@ pub struct PlaybackState {
     pub repeat: RepeatMode,
     pub crossfade_ms: u32,
     pub context: Option<ContextInfo>,
+    /// True while Spotify Connect (e.g. the phone) is driving playback.
+    #[serde(default)]
+    pub remote: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -141,6 +150,10 @@ struct Controller {
     autoplay_pending: bool,
     dirty_queue: bool,
     pending_stop: Option<(usize, Instant)>,
+    remote: Option<Arc<dyn engine_connect::RemoteControl>>,
+    remote_active: bool,
+    remote_req: Option<u64>,
+    remote_track: Option<(Track, u32)>,
 }
 
 fn unix_ms() -> u64 {
@@ -196,6 +209,10 @@ pub fn spawn(audio: AudioEngine, store: Arc<StateStore>) -> PlaybackHandle {
         autoplay_pending: false,
         dirty_queue: false,
         pending_stop: None,
+        remote: None,
+        remote_active: false,
+        remote_req: None,
+        remote_track: None,
     };
     tokio::spawn(ctl.run(rx));
     handle
@@ -205,6 +222,7 @@ impl Controller {
     async fn run(mut self, mut rx: mpsc::UnboundedReceiver<Cmd>) {
         let mut ev0: Option<engine_audio::PlayerEventChannel> = None;
         let mut ev1: Option<engine_audio::PlayerEventChannel> = None;
+        let mut ev2: Option<engine_audio::PlayerEventChannel> = None;
         let mut tick = tokio::time::interval(Duration::from_millis(100));
         let mut persist = tokio::time::interval(Duration::from_secs(2));
         loop {
@@ -217,10 +235,17 @@ impl Controller {
                         ev1 = self.audio.events(1);
                         continue;
                     }
+                    if let Cmd::CreateConnectPlayer(s, reply) = cmd {
+                        let p = self.audio.create_connect_player(&s);
+                        ev2 = self.audio.events(engine_audio::CONNECT_DECK);
+                        let _ = reply.send(p);
+                        continue;
+                    }
                     self.handle(cmd);
                 }
                 Some(e) = recv_opt(&mut ev0) => self.on_player_event(0, e),
                 Some(e) = recv_opt(&mut ev1) => self.on_player_event(1, e),
+                Some(e) = recv_opt(&mut ev2) => self.on_connect_event(e),
                 _ = tick.tick() => self.on_tick(),
                 _ = persist.tick() => self.persist(),
             }
@@ -229,8 +254,31 @@ impl Controller {
     }
 
     fn handle(&mut self, cmd: Cmd) {
+        if self.remote_active {
+            if let Some(r) = self.remote.clone() {
+                match &cmd {
+                    Cmd::Play => return r.play(),
+                    Cmd::Pause => return r.pause(),
+                    Cmd::Toggle => return r.play_pause(),
+                    Cmd::Next => return r.next(),
+                    Cmd::Prev => return r.prev(),
+                    Cmd::Seek(ms) => return r.seek(*ms),
+                    Cmd::SetVolume(v) => r.set_volume(*v),
+                    Cmd::PlayContext { .. } | Cmd::PlayTrack(_) | Cmd::ExtendContext(_) => self.leave_remote(),
+                    _ => {}
+                }
+            }
+        }
         match cmd {
-            Cmd::AttachSession(_) => {}
+            Cmd::AttachSession(_) | Cmd::CreateConnectPlayer(..) => {}
+            Cmd::SetRemote(r) => self.remote = Some(r),
+            Cmd::RemoteVolume(v) => {
+                let v = if v.is_finite() { v.clamp(0.0, 1.0) } else { self.prefs.volume };
+                self.prefs.volume = v;
+                self.audio.set_volume(v);
+                self.state.volume = v;
+                self.emit_state(false);
+            }
             Cmd::PlayContext { info, tracks, start } => {
                 let e = self.queue.play_context(info, tracks, start);
                 self.start_entry(e, true);
@@ -606,6 +654,84 @@ impl Controller {
         self.dirty_queue = true;
     }
 
+    fn leave_remote(&mut self) {
+        if let Some(r) = &self.remote {
+            r.pause();
+            r.release();
+        }
+        self.remote_active = false;
+        self.state.remote = false;
+        self.audio.set_deck_level(engine_audio::CONNECT_DECK, false);
+    }
+
+    /// Events from the Spotify Connect deck.
+    fn on_connect_event(&mut self, ev: PlayerEvent) {
+        match ev {
+            PlayerEvent::PlayRequestIdChanged { play_request_id } => self.remote_req = Some(play_request_id),
+            PlayerEvent::TrackChanged { audio_item } => {
+                let t = track_from_audio_item(&audio_item);
+                if self.remote_active {
+                    self.state.track = Some(t);
+                    self.state.duration_ms = audio_item.duration_ms;
+                    self.state.position_ms = 0;
+                    self.state.position_at = unix_ms();
+                    self.emit_state(true);
+                } else {
+                    self.remote_track = Some((t, audio_item.duration_ms));
+                }
+            }
+            PlayerEvent::Playing { position_ms, .. } => {
+                if !self.remote_active {
+                    // The phone started playing on us: pause local, mirror remote.
+                    info!("Spotify Connect took over playback");
+                    if self.state.playing {
+                        self.audio.pause(self.active);
+                    }
+                    self.remote_active = true;
+                    self.state.remote = true;
+                    self.audio.set_deck_level(engine_audio::CONNECT_DECK, true);
+                    if let Some((t, d)) = self.remote_track.take() {
+                        self.state.track = Some(t);
+                        self.state.duration_ms = d;
+                    }
+                    self.state.playing = true;
+                    self.state.loading = false;
+                    self.state.position_ms = position_ms;
+                    self.state.position_at = unix_ms();
+                    self.pos_sample = (position_ms, Instant::now());
+                    self.emit_state(true);
+                    return;
+                }
+                self.state.playing = true;
+                self.state.loading = false;
+                self.state.position_ms = position_ms;
+                self.state.position_at = unix_ms();
+                self.pos_sample = (position_ms, Instant::now());
+                self.emit_state(false);
+            }
+            PlayerEvent::Paused { .. } | PlayerEvent::Stopped { .. } if self.remote_active => {
+                let pos = if let PlayerEvent::Paused { position_ms, .. } = ev { position_ms } else { self.state.position_ms };
+                self.state.playing = false;
+                self.state.position_ms = pos;
+                self.state.position_at = unix_ms();
+                self.pos_sample = (pos, Instant::now());
+                self.emit_state(false);
+            }
+            PlayerEvent::PositionChanged { position_ms, .. } | PlayerEvent::Seeked { position_ms, .. } | PlayerEvent::PositionCorrection { position_ms, .. }
+                if self.remote_active =>
+            {
+                self.state.position_ms = position_ms;
+                self.state.position_at = unix_ms();
+                self.pos_sample = (position_ms, Instant::now());
+            }
+            PlayerEvent::Loading { .. } if self.remote_active => {
+                self.state.loading = true;
+                self.emit_state(false);
+            }
+            _ => {}
+        }
+    }
+
     fn persist(&mut self) {
         if !self.dirty_queue {
             return;
@@ -630,4 +756,39 @@ pub fn spawn_with(audio: AudioEngine, store: Arc<StateStore>, crossfade_ms: u32)
     let h = spawn(audio, store);
     h.send(Cmd::SetCrossfade(crossfade_ms));
     h
+}
+
+/// Map a librespot AudioItem (from the Connect deck) to our Track model.
+fn track_from_audio_item(a: &engine_audio::librespot_playback_metadata::AudioItem) -> Track {
+    use engine_api::models::{AlbumRef, ArtistRef, Image};
+    use engine_audio::librespot_playback_metadata::UniqueFields;
+    let images: Vec<Image> = a
+        .covers
+        .iter()
+        .filter_map(|c| {
+            Some(Image {
+                url: engine_api::parse::img_url(&c.url)?,
+                width: Some(c.width.max(0) as u32),
+                height: Some(c.height.max(0) as u32),
+            })
+        })
+        .collect();
+    let (artists, album) = match &a.unique_fields {
+        UniqueFields::Track { artists, album, .. } => (
+            artists.iter().map(|x| ArtistRef { uri: x.id.to_uri().unwrap_or_default(), name: x.name.clone() }).collect(),
+            album.clone(),
+        ),
+        UniqueFields::Episode { show_name, .. } => (vec![ArtistRef { uri: String::new(), name: show_name.clone() }], show_name.clone()),
+        _ => (Vec::new(), String::new()),
+    };
+    Track {
+        uri: a.uri.clone(),
+        title: a.name.clone(),
+        artists,
+        album: AlbumRef { uri: String::new(), name: album, images },
+        duration_ms: a.duration_ms,
+        explicit: a.is_explicit,
+        playable: true,
+        ..Default::default()
+    }
 }

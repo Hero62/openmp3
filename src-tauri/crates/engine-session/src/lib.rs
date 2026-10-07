@@ -91,6 +91,15 @@ impl SessionManager {
         &self.paths
     }
 
+    /// A fresh, unconnected session (own stable device id) plus cached
+    /// credentials, for Spotify Connect: Spirc connects it itself.
+    pub fn connect_session(&self) -> Result<(Session, Credentials)> {
+        let creds = self.cache.credentials().ok_or_else(|| anyhow!("not logged in"))?;
+        let mut config = self.config.clone();
+        config.device_id = stable_device_id_named(&self.paths.data, "connect_device_id");
+        Ok((Session::new(config, Some(self.cache.clone())), creds))
+    }
+
     pub fn device_id(&self) -> &str {
         &self.config.device_id
     }
@@ -173,7 +182,11 @@ impl SessionManager {
 
 /// librespot generates a random device id per run; Connect needs a stable one.
 fn stable_device_id(dir: &Path) -> String {
-    let file = dir.join("device_id");
+    stable_device_id_named(dir, "device_id")
+}
+
+fn stable_device_id_named(dir: &Path, name: &str) -> String {
+    let file = dir.join(name);
     if let Ok(id) = std::fs::read_to_string(&file) {
         let id = id.trim().to_string();
         if id.len() >= 16 {

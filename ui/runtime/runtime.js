@@ -398,6 +398,7 @@
     if (!region("main").firstChild) renderRoute();
   }
   function renderRegion(r) {
+    if (MINI) return r === "player" ? renderMini() : undefined;
     const el = region(r);
     if (!el) return;
     const comp = REGION_COMPONENT[r];
@@ -1540,6 +1541,14 @@
   Object.defineProperty(window, "mp3", { value: Object.freeze(mp3), writable: false });
 
   // ------------------------------------------------------------------ boot
+  const MINI = new URLSearchParams(location.search).get("mini") === "1";
+  function renderMini() {
+    const root = $("#mp3-root");
+    root.className = "mp3-app mp3-mini";
+    root.style.cssText = "";
+    root.innerHTML = render("mini-player", playerData());
+    bindLive();
+  }
   async function boot() {
     // All in parallel; any one failing (offline, audio still starting) must not block the UI.
     const [session, settings, playback, queue, playlists] = await Promise.allSettled([
@@ -1561,6 +1570,13 @@
     if (playlists.status === "fulfilled") S.playlists = playlists.value;
     S.route = { view: "home" };
     setAccent();
+    if (MINI) {
+      renderMini();
+      ["trackChanged", "playStateChanged"].forEach((e) => on(e, () => renderMini()));
+      post({ ready: true, apiVersion: API_VERSION });
+      refreshLiked();
+      return;
+    }
     applyLayout();
     post({ ready: true, apiVersion: API_VERSION });
     refreshLiked();
