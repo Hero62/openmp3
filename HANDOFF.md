@@ -1,6 +1,6 @@
 # HANDOFF — mp3palace
 
-_Last updated: 2026-10-07 by the build loop. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
+_Version **1.0.0** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
 
 mp3palace is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`.
 

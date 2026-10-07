@@ -4,3 +4,6 @@ node_modules/
 *.log
 /src-tauri/gen/schemas/
 .env
+
+# Claude Code session files
+.claude/
