@@ -59,13 +59,35 @@ impl AppPaths {
     }
 }
 
-/// Returns `root\APP_DIR`, first moving `root\LEGACY_APP_DIR` there if only
-/// the old folder exists, so login, settings, queue and themes carry over.
+/// Bundle identifier used before the rename; its WebView2 cache is removed.
+pub const LEGACY_BUNDLE_DIR: &str = "com.hero62.mp3palace";
+
+/// Returns `root\APP_DIR`, first moving everything from `root\LEGACY_APP_DIR`
+/// into it (entry by entry, never overwriting) so login, settings, queue,
+/// themes and caches carry over. The installer may already have created the
+/// new folder, hence the merge. Old executables (from the mp3palace installer)
+/// are left behind. Also drops the old bundle's WebView2 cache.
 fn migrate(root: &std::path::Path) -> PathBuf {
     let new = root.join(APP_DIR);
     let old = root.join(LEGACY_APP_DIR);
-    if !new.exists() && old.is_dir() {
-        let _ = std::fs::rename(&old, &new);
+    if old.is_dir() {
+        let _ = std::fs::create_dir_all(&new);
+        if let Ok(entries) = std::fs::read_dir(&old) {
+            for e in entries.flatten() {
+                let name = e.file_name();
+                let is_exe = std::path::Path::new(&name)
+                    .extension()
+                    .map(|x| x.eq_ignore_ascii_case("exe"))
+                    .unwrap_or(false);
+                let dest = new.join(&name);
+                if !is_exe && !dest.exists() {
+                    let _ = std::fs::rename(e.path(), dest);
+                }
+            }
+        }
+        // Removes the old folder only once nothing is left in it.
+        let _ = std::fs::remove_dir(&old);
+        let _ = std::fs::remove_dir_all(root.join(LEGACY_BUNDLE_DIR));
     }
     new
 }
@@ -74,23 +96,49 @@ fn migrate(root: &std::path::Path) -> PathBuf {
 mod migrate_tests {
     use super::*;
 
-    #[test]
-    fn moves_legacy_folder_once() {
-        let root = std::env::temp_dir().join(format!("openmp3-migrate-{}", std::process::id()));
+    fn tmp(tag: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("openmp3-migrate-{tag}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir_all(root.join(LEGACY_APP_DIR)).unwrap();
-        std::fs::write(root.join(LEGACY_APP_DIR).join("settings.json"), "{}").unwrap();
+        std::fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    #[test]
+    fn moves_legacy_folder() {
+        let root = tmp("move");
+        let old = root.join(LEGACY_APP_DIR);
+        std::fs::create_dir_all(old.join("themes/halo")).unwrap();
+        std::fs::write(old.join("settings.json"), "{}").unwrap();
+        std::fs::create_dir_all(root.join(LEGACY_BUNDLE_DIR).join("EBWebView")).unwrap();
 
         let dir = migrate(&root);
         assert_eq!(dir, root.join(APP_DIR));
         assert!(dir.join("settings.json").is_file());
-        assert!(!root.join(LEGACY_APP_DIR).exists());
+        assert!(dir.join("themes/halo").is_dir());
+        assert!(!old.exists());
+        assert!(!root.join(LEGACY_BUNDLE_DIR).exists());
+        let _ = std::fs::remove_dir_all(&root);
+    }
 
-        // An existing new folder is never overwritten by a stale legacy one.
-        std::fs::create_dir_all(root.join(LEGACY_APP_DIR)).unwrap();
+    #[test]
+    fn merges_into_existing_folder_without_overwriting() {
+        let root = tmp("merge");
+        let old = root.join(LEGACY_APP_DIR);
+        let new = root.join(APP_DIR);
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::create_dir_all(&new).unwrap();
+        std::fs::write(old.join("library.sqlite"), "old-db").unwrap();
+        std::fs::write(old.join("settings.json"), "old").unwrap();
+        std::fs::write(old.join("mp3palace.exe"), "exe").unwrap();
+        std::fs::write(new.join("settings.json"), "new").unwrap();
+        std::fs::write(new.join("openmp3.exe"), "exe").unwrap();
+
         migrate(&root);
-        assert!(root.join(LEGACY_APP_DIR).exists());
-        assert!(dir.join("settings.json").is_file());
+        assert_eq!(std::fs::read_to_string(new.join("library.sqlite")).unwrap(), "old-db");
+        assert_eq!(std::fs::read_to_string(new.join("settings.json")).unwrap(), "new");
+        assert!(!new.join("mp3palace.exe").exists());
+        // Unmoved leftovers keep the old folder around rather than being deleted.
+        assert!(old.join("settings.json").is_file() && old.join("mp3palace.exe").is_file());
         let _ = std::fs::remove_dir_all(&root);
     }
 }

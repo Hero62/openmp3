@@ -23,7 +23,7 @@
   <img alt="Platform: Windows 11" src="https://img.shields.io/badge/platform-Windows%2011-0078D4?style=flat-square">
   <img alt="Built with Tauri v2" src="https://img.shields.io/badge/Tauri-v2-24C8DB?style=flat-square">
   <img alt="Engine: Rust + librespot 0.8" src="https://img.shields.io/badge/engine-Rust%20%2B%20librespot%200.8-B7410E?style=flat-square">
-  <img alt="Version 1.0.1" src="https://img.shields.io/badge/version-1.0.1-8b5cf6?style=flat-square">
+  <img alt="Version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-8b5cf6?style=flat-square">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 > This is a **personal-use** project. It needs a **Spotify Premium** account; librespot quits on Free accounts. It is not affiliated with or endorsed by Spotify.
 
 > [!NOTE]
-> openmp3 was called **mp3palace** up to v1.0.1. On first start it moves your old `%APPDATA%\mp3palace` and `%LOCALAPPDATA%\mp3palace` folders to `openmp3`, so your login, settings, queue and themes carry over. If you used the old installer, uninstall "mp3palace" from Windows Settings afterwards.
+> openmp3 was called **mp3palace** up to v1.0.1. On first start it moves your old `%APPDATA%\mp3palace` and `%LOCALAPPDATA%\mp3palace` folders to `openmp3`, so your login, settings, queue and themes carry over, and deletes the old WebView2 cache. If you installed mp3palace with its installer, uninstall it from Windows Settings afterwards.
 
 ## Why
 
