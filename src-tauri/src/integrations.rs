@@ -141,6 +141,8 @@ pub fn toggle_mini(app: &AppHandle) {
         .decorations(true)
         .visible(false)
         .background_color(tauri::window::Color(14, 14, 16, 255))
+        // Must match the main window (same WebView2 environment).
+        .additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-gpu --js-flags=--lite-mode --disable-background-networking --disable-component-update")
         .build();
     if let Err(e) = r {
         warn!("mini player: {e}");

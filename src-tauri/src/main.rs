@@ -29,7 +29,10 @@ use serde_json::{json, Value};
 use tauri::{Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
+static PROCESS_START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
 fn main() {
+    let _ = PROCESS_START.set(std::time::Instant::now());
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,librespot=info")).init();
     if let Some(code) = devtools::run_from_args() {
         std::process::exit(code);
@@ -92,8 +95,16 @@ fn main() {
             match event {
                 // Ctrl+Shift+D is registered only while our window is focused, so it is
                 // effectively app-local and handled natively — a theme can't swallow it.
+                WindowEvent::Resized(_) => {
+                    let app = window.app_handle();
+                    let hidden = window.is_minimized().unwrap_or(false) || !window.is_visible().unwrap_or(true);
+                    window::set_low_memory(app, hidden);
+                }
                 WindowEvent::Focused(focused) => {
                     let app = window.app_handle();
+                    if *focused {
+                        window::set_low_memory(app, false);
+                    }
                     let sc: Shortcut = "Ctrl+Shift+D".parse().unwrap();
                     if *focused {
                         let _ = app.global_shortcut().on_shortcut(sc, |app, _sc, ev| {
@@ -115,6 +126,7 @@ fn main() {
                             if let Some(w) = app.get_webview_window("main") {
                                 let r = w.hide();
                                 info!("closed to tray (hide: {r:?})");
+                                window::set_low_memory(&app, true);
                             }
                         });
                     }
@@ -211,8 +223,13 @@ fn host_init(window: tauri::WebviewWindow, state: tauri::State<'_, State>) -> Va
 /// Called by the host page once the theme frame is mounted; the window starts
 /// hidden so the user never sees a blank flash.
 #[tauri::command]
-fn host_ready(window: tauri::WebviewWindow, via: String) {
-    info!("[host] ready via {via}");
+fn host_ready(window: tauri::WebviewWindow, state: tauri::State<'_, State>, via: String) {
+    let ms = PROCESS_START.get().map(|t| t.elapsed().as_millis()).unwrap_or(0);
+    info!("[host] {} ready via {via} at {ms} ms after process start", window.label());
+    if window.label() == "main" {
+        // Kept for the HANDOFF metrics (release builds have no console).
+        let _ = std::fs::write(state.paths.cache.join("last_startup_ms.txt"), format!("{ms} {via}\n"));
+    }
     let _ = window.show();
     let _ = window.set_focus();
 }

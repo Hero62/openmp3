@@ -3138,6 +3138,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
  "tokio",
+ "webview2-com",
  "windows 0.62.2",
  "windows-sys 0.61.2",
  "zip",

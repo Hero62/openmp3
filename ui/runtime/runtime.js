@@ -82,12 +82,20 @@
   // frame-time sampling for the performance meter
   let frameTimes = [];
   let lastFrame = performance.now();
-  (function tick(t) {
+  let sampling = false;
+  function tick(t) {
     frameTimes.push(t - lastFrame);
     if (frameTimes.length > 120) frameTimes.shift();
     lastFrame = t;
+    if (S.route && S.route.view === "themes" && !document.hidden) requestAnimationFrame(tick);
+    else sampling = false;
+  }
+  function startSampling() {
+    if (sampling) return;
+    sampling = true;
+    lastFrame = performance.now();
     requestAnimationFrame(tick);
-  })(lastFrame);
+  }
   function perfSample() {
     const ft = frameTimes.slice().sort((a, b) => a - b);
     const mem = performance.memory ? performance.memory.usedJSHeapSize : 0;
@@ -435,12 +443,33 @@
   let liveEls = [];
   function bindLive() {
     liveEls = $$("[data-bind]");
+    // Paint position/progress once now (the loop only runs while playing).
+    requestAnimationFrame(() => liveTick());
+    startLive();
   }
   let lastLive = 0;
-  function liveLoop(t) {
+  let liveRunning = false;
+  function wantLive() {
+    return !!(S.playback && S.playback.playing) && !document.hidden;
+  }
+  function startLive() {
+    if (liveRunning || !wantLive()) return;
+    liveRunning = true;
     requestAnimationFrame(liveLoop);
-    if (document.hidden || t - lastLive < 200) return;
-    lastLive = t;
+  }
+  function liveLoop(t) {
+    if (!wantLive()) {
+      liveRunning = false;
+      lastLive = 0;
+      liveTick(); // settle the final position
+      return;
+    }
+    requestAnimationFrame(liveLoop);
+    if (t - lastLive < 200) return;
+    liveTick();
+  }
+  function liveTick() {
+    lastLive = performance.now();
     const pos = positionNow();
     const dur = (S.playback && S.playback.durationMs) || 0;
     for (const el of liveEls) {
@@ -459,7 +488,7 @@
     }
     if (S.panel === "lyrics" || S.route?.view === "nowPlaying") syncLyrics(false);
   }
-  requestAnimationFrame(liveLoop);
+  document.addEventListener("visibilitychange", () => startLive());
 
   // ------------------------------------------------------------------ router / views
   const VIEWS = {};
@@ -479,6 +508,7 @@
     renderRoute();
     renderRegion("sidebar");
     emit("navigate", r);
+    if (view === "themes") startSampling();
   }
   function back() {
     if (!S.history.length) return;
@@ -1373,6 +1403,9 @@
     if (S.route && S.route.view === "nowPlaying") renderRoute();
     updateTrackStates();
   });
+  on("playStateChanged", () => startLive());
+  on("trackChanged", () => startLive());
+  on("navigate", (r) => r && r.view === "themes" && startSampling());
   on("playStateChanged", (st) => {
     const accent = S.playback && S.playback.accent;
     S.playback = Object.assign({ accent }, st, st.accent ? { accent: st.accent } : {});
@@ -1566,6 +1599,7 @@
       S.compact = !!S.settings.ui.compact;
     }
     if (playback.status === "fulfilled") S.playback = playback.value;
+    setTimeout(startLive, 0);
     if (queue.status === "fulfilled") S.queue = queue.value;
     if (playlists.status === "fulfilled") S.playlists = playlists.value;
     S.route = { view: "home" };

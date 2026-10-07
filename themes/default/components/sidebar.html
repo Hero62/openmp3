@@ -30,6 +30,10 @@
   </button>
   {{/each}}
 </div>
+{{#if session.state | eq:offline}}<div class="mp3-session-note mp3-label" title="{{session.message}}">Offline — showing saved data. Reconnecting…</div>{{/if}}
+{{#if session.state | eq:connecting}}<div class="mp3-session-note mp3-label">Connecting to Spotify…</div>{{/if}}
+{{#if session.state | eq:loggedOut}}<button class="mp3-session-note mp3-session-login mp3-label" data-action="login">Log in to Spotify</button>{{/if}}
+{{#if session.state | eq:error}}<button class="mp3-session-note mp3-session-login mp3-label" data-action="login" title="{{session.message}}">Login failed — try again</button>{{/if}}
 <div class="mp3-sidebar-foot">
   <button class="mp3-icon-btn" data-action="nav" data-view="settings" title="Settings">
     <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM10.6 2h2.8l.5 2.6 1.6.9 2.5-.9 1.4 2.4-2 1.8v1.8l2 1.8-1.4 2.4-2.5-.9-1.6.9-.5 2.6h-2.8l-.5-2.6-1.6-.9-2.5.9-1.4-2.4 2-1.8v-1.8l-2-1.8 1.4-2.4 2.5.9 1.6-.9z"/></svg>
