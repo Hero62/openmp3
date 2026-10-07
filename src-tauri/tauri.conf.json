@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "mp3palace",
+  "identifier": "com.hero62.mp3palace",
+  "build": {
+    "frontendDist": "../ui/host"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "mp3palace",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 360,
+        "minHeight": 120,
+        "visible": false,
+        "backgroundColor": "#121212"
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "frame-src": "http://theme.localhost theme:",
+        "object-src": "'none'",
+        "base-uri": "'none'"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+  }
+}

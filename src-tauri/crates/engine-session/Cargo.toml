@@ -1,0 +1,15 @@
+[package]
+name = "engine-session"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+engine-common = { path = "../engine-common" }
+librespot-core.workspace = true
+librespot-oauth.workspace = true
+librespot-playback.workspace = true
+librespot-metadata.workspace = true
+tokio.workspace = true
+log.workspace = true
+anyhow.workspace = true

@@ -1,0 +1,4 @@
+html, body { margin: 0; height: 100%; background: #121212; overflow: hidden; }
+#theme { border: 0; width: 100%; height: 100%; display: block; }
+#host-banner { position: fixed; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px;
+  background: #3a1d1d; color: #fff; font: 13px system-ui; border-radius: 8px; z-index: 10; }
