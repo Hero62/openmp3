@@ -402,7 +402,8 @@ impl ThemeManager {
             }
             // Validate in place using a temporary id.
             let tmp_id = staging.file_name().unwrap().to_string_lossy().to_string();
-            let meta = self.validate_dir(&staging).with_context(|| format!("invalid theme ({tmp_id})"))?;
+            let meta = self.validate_dir(&staging)?;
+            let _ = tmp_id;
             let id = self.unique_id(meta["name"].as_str().unwrap_or("theme"));
             std::fs::rename(&staging, self.dir.join(&id))?;
             let has_script = self.dir.join(&id).join("script.js").exists();

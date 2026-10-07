@@ -79,13 +79,13 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 6.6 podcasts: show pages (newest first), episodes play via librespot (`spotify:episode:` load verified), followed shows in Library.
 
 ## Stage 7 — theme tooling
-- [ ] 7.1 import `.theme` (zip) with JSON Schema validation, script.js warning, error + fallback.
-- [ ] 7.2 Themes page: Apply / Duplicate / Export / Delete; Default undeletable; export Default as template.
-- [ ] 7.3 THEME_GUIDE.md + "Copy theme guide" button.
-- [ ] 7.4 live link folder mode (watch + hot reload).
-- [ ] 7.5 in-app theme editor with live preview.
-- [ ] 7.6 performance meter (CPU / memory / frame time).
-- [ ] 7.7 `examples/visualizer.theme` proving layer 4 (script.js + audio API).
+- [x] 7.1 import `.theme` (zip) with JSON Schema validation (theme.json + layout.json schemas, component sanitizer, path/extension allowlist, size limits), script.js warning (native dialog), invalid → native error dialog, broken installed theme → Default + banner — verified: Spectrum.theme imports (`has_script=true`); malicious theme rejected with exact reason; unit tests for 8 bad-package cases; load failure shows "Theme … failed to load, so Default is shown." (unverified by automation: the native file picker / warning dialog clicks.)
+- [x] 7.2 Themes page: Apply / Duplicate / Export / Delete / Edit; Default undeletable + read-only; Export Default as template — verified via bridge: apply (layout/tokens switch live), duplicate, Default save/delete refused; export/import round trip unit-tested. (unverified by automation: native save dialog + delete confirmation clicks.)
+- [x] 7.3 THEME_GUIDE.md (files, schema fields, CSS vars, every class, components + data shapes, template syntax/filters, data-actions, full script API, limits, examples for all 4 layers incl. visualizer) + "Copy theme guide" button — verified: clipboard holds the 28.7k-char guide.
+- [x] 7.4 live link folder mode — verified: linked examples/visualizer, saving theme.css hot-reloaded the frame; unlink returns to Default.
+- [x] 7.5 in-app editor (colors, fonts, radius, density, layout.json, theme.css) with live preview, Save (validated, auto-rollback) and Export — verified: accent/CSS preview applied instantly; invalid save rejected and files rolled back.
+- [x] 7.6 performance meter on the Themes page (UI CPU %, UI + engine memory, median/p95 frame time, JS heap, DOM nodes) — verified rendering live numbers.
+- [x] 7.7 `examples/visualizer/` (packed `examples/Spectrum.theme`): tokens + layout (player on top) + CSS + component override + script.js (spectrum behind player bar, beat flash, full-screen visualizer view, Ctrl+K command, mp3.storage) — verified with injected analysis frames through the real host→frame path (canvas drew 355k px). (unverified: with live engine frames — no audio device.)
 
 ## Stage 8 — polish + metrics
 - [ ] 8.1 startup ≈1 s to usable UI from cache (measured).

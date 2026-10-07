@@ -1,0 +1,24 @@
+{
+  "name": "Spectrum",
+  "author": "mp3palace examples",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Neon theme with the player bar on top and a live audio visualizer (layer 4: script.js).",
+  "colors": {
+    "bg": "#07060d",
+    "surface": "#0d0b18",
+    "surface2": "#161229",
+    "elevated": "#1f1938",
+    "text": "#f4f1ff",
+    "textMuted": "#9d95c4",
+    "accent": "#00e5ff",
+    "accentText": "#05040a",
+    "border": "#241d42",
+    "hover": "rgba(0,229,255,0.08)"
+  },
+  "fonts": { "heading": "'Bahnschrift', 'Segoe UI', sans-serif" },
+  "radius": 14,
+  "density": "comfortable",
+  "accentFromCover": false,
+  "playerHeight": 96
+}

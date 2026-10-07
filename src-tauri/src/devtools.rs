@@ -25,6 +25,7 @@ pub fn run_from_args() -> Option<i32> {
         "--login" => rt.block_on(login_only()),
         "--engine-test" => rt.block_on(engine_test()),
         "--api-probe" => rt.block_on(api_probe()),
+        "--import-theme" => import_theme(args.get(1).map(|s| s.as_str()).unwrap_or("")),
         "--show-probe" => rt.block_on(show_probe(args.get(1).map(|s| s.as_str()).unwrap_or(""))),
         "--api-test" => rt.block_on(api_test(args.get(1).map(|s| s == "--edit").unwrap_or(false))),
         _ => return None,
@@ -357,6 +358,17 @@ pub async fn show_probe(uri: &str) -> Result<()> {
     let eps = ep.episodes_meta(&[assoc.first().cloned().unwrap_or_default(), assoc.last().cloned().unwrap_or_default()]).await?;
     for (u, e) in eps {
         eprintln!("[show] {u} = {:?} published {:?}", e.name, e.publish_time.as_ref().map(|d| (d.year, d.month, d.day)));
+    }
+    Ok(())
+}
+
+/// Import a .theme through the same code path as the Themes page "+" card.
+pub fn import_theme(path: &str) -> Result<()> {
+    let paths = AppPaths::resolve();
+    let tm = crate::themes::ThemeManager::new(paths.themes_dir());
+    match tm.import_zip(std::path::Path::new(path)) {
+        Ok((id, script)) => eprintln!("[theme] imported id={id} has_script={script}"),
+        Err(e) => eprintln!("[theme] rejected: {e:#}"),
     }
     Ok(())
 }

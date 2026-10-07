@@ -1,0 +1,15 @@
+/* Spectrum: neon glow, player bar on top with a live spectrum behind it. */
+.mp3-app { gap: 10px; padding: 10px; }
+.mp3-region { border: 1px solid var(--border); box-shadow: 0 0 0 1px rgba(0,229,255,.03), 0 20px 60px rgba(0,0,0,.45); }
+.mp3-player { position: relative; overflow: hidden; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.mp3-player-inner { position: relative; z-index: 1; }
+.spx-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: .55; pointer-events: none; }
+.spx-flash { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at 50% 120%, rgba(255,0,200,.35), transparent 60%); opacity: 0; transition: opacity .25s; }
+.spx-flash.on { opacity: 1; transition: none; }
+.mp3-play-btn { background: var(--accent); color: var(--accent-text); box-shadow: 0 0 24px rgba(0,229,255,.6); }
+.mp3-hero-title, .mp3-page-top h1 { background: linear-gradient(90deg, #00e5ff, #ff3dcb); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mp3-card:hover { background: var(--surface-2); box-shadow: 0 0 0 1px var(--accent) inset; }
+.spx-view { position: relative; height: 100%; min-height: 480px; }
+.spx-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.spx-view .spx-hint { position: absolute; left: 24px; bottom: 20px; color: var(--text-muted); font-size: 13px; }
+.spx-view .spx-title { position: absolute; left: 24px; top: 20px; font: 800 28px var(--font-heading); }

@@ -1,0 +1,8 @@
+<div class="mp3-card spx-card" data-action="open" data-uri="{{uri}}" title="{{#if title}}{{title}}{{else}}{{name}}{{/if}}">
+  <div class="mp3-card-art">
+    {{#if images}}<img loading="lazy" decoding="async" src="{{images | img:300}}" alt="">{{else}}<span class="mp3-art-blank"></span>{{/if}}
+    <button class="mp3-card-play" data-action="play-context" data-uri="{{uri}}" title="Play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg></button>
+  </div>
+  <div class="mp3-card-title mp3-truncate">{{#if title}}{{title}}{{else}}{{name}}{{/if}}</div>
+  <div class="mp3-card-sub mp3-truncate">{{subtitle}}</div>
+</div>

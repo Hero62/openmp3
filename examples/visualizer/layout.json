@@ -1,0 +1,8 @@
+{
+  "normal": {
+    "areas": ["player player", "sidebar main"],
+    "columns": ["var(--sidebar-w)", "minmax(0, 1fr)"],
+    "rows": ["var(--player-h)", "minmax(0, 1fr)"]
+  },
+  "regions": { "panel": { "visible": false } }
+}
