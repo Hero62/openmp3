@@ -1,0 +1,42 @@
+/* mp3palace runtime base styles: structure only. Visual styling lives in the
+ * theme (Default's theme.css is loaded under every custom theme). */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--bg, #0e0e10);
+  color: var(--text, #eee);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: var(--font-size, 14px);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+img { display: block; max-width: 100%; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; cursor: pointer; }
+template { display: none !important; }
+
+.mp3-app {
+  display: grid;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+.mp3-region { min-width: 0; min-height: 0; overflow: hidden; position: relative; }
+.mp3-main, .mp3-scroll { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.mp3-sidebar, .mp3-panel { display: flex; flex-direction: column; }
+
+.mp3-vrow { contain: layout style paint; }
+
+.mp3-overlay { position: fixed; inset: 0; z-index: 1000; }
+.mp3-overlay-dim { background: rgba(0, 0, 0, 0.55); display: grid; place-items: center; }
+.mp3-overlay-top { place-items: start center; padding-top: 12vh; }
+.mp3-overlay-menu .mp3-menu { position: fixed; }
+
+.mp3-toasts { position: fixed; left: 50%; bottom: calc(var(--player-h, 84px) + 16px); transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 1100; pointer-events: none; }
+.mp3-toast { transition: opacity .4s, transform .4s; }
+.mp3-toast-out { opacity: 0; transform: translateY(8px); }
+
+.mp3-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.mp3-hidden { display: none !important; }

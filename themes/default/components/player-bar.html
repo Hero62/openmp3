@@ -1,0 +1,56 @@
+<div class="mp3-player-inner">
+  <div class="mp3-player-left">
+    {{#if track}}
+      <button class="mp3-player-cover" data-action="now-playing" title="Now Playing">{{#if cover}}<img src="{{cover}}" alt="">{{/if}}</button>
+      <div class="mp3-player-meta">
+        <a class="mp3-player-title mp3-truncate" data-action="open" data-uri="{{track.album.uri}}">{{track.title}}</a>
+        <div class="mp3-player-artists mp3-truncate">{{#each track.artists}}<a data-action="open" data-uri="{{uri}}">{{name}}</a>{{#unless @last}}, {{/unless}}{{/each}}</div>
+      </div>
+      <button class="mp3-icon-btn mp3-like {{#if liked}}mp3-on{{/if}}" data-action="like" data-uri="{{track.uri}}" title="{{#if liked}}Remove from Liked Songs{{else}}Save to Liked Songs{{/if}}">
+        <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 20.3 10.6 19C5.4 14.4 2 11.3 2 7.5 2 4.4 4.4 2 7.5 2c1.7 0 3.4.8 4.5 2.1C13.1 2.8 14.8 2 16.5 2 19.6 2 22 4.4 22 7.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg>
+      </button>
+    {{else}}
+      <div class="mp3-player-meta mp3-muted">Nothing playing</div>
+    {{/if}}
+  </div>
+  <div class="mp3-player-center">
+    <div class="mp3-controls">
+      <button class="mp3-icon-btn {{#if shuffleOn}}mp3-on{{/if}} {{#if shuffleSpread}}mp3-spread{{/if}}" data-action="shuffle" title="Shuffle{{#if shuffleSpread}} (spread out artists){{/if}}">
+        <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M17 3l4 4-4 4V8h-2.6l-2.3 3.2-1.2-1.7L13.4 6H17zM3 6h4.6l8.4 12H17v-3l4 4-4 4v-3h-2.6L6.6 8H3zm0 10h3.6l1.7-2.4 1.2 1.7L7.6 18H3z"/></svg>
+      </button>
+      <button class="mp3-icon-btn" data-action="prev" title="Previous">
+        <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M6 5h2v14H6zm3.5 7L19 5v14z"/></svg>
+      </button>
+      <button class="mp3-play-btn" data-action="toggle" title="{{#if playing}}Pause{{else}}Play{{/if}}">
+        {{#if playing}}<svg viewBox="0 0 24 24" class="mp3-icon"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>{{else}}<svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg>{{/if}}
+      </button>
+      <button class="mp3-icon-btn" data-action="next" title="Next">
+        <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M16 5h2v14h-2zM5 5l9.5 7L5 19z"/></svg>
+      </button>
+      <button class="mp3-icon-btn {{#if repeatOn}}mp3-on{{/if}}" data-action="repeat" title="Repeat{{#if repeatOne}} one{{/if}}">
+        <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg>
+        {{#if repeatOne}}<span class="mp3-badge">1</span>{{/if}}
+      </button>
+    </div>
+    <div class="mp3-progress-row">
+      <span class="mp3-time" data-bind="position">0:00</span>
+      <input class="mp3-progress" type="range" min="0" max="1000" value="0" data-action="seek" data-bind="progress" aria-label="Seek">
+      <span class="mp3-time">{{durationMs | duration}}</span>
+    </div>
+  </div>
+  <div class="mp3-player-right">
+    <button class="mp3-icon-btn {{#if panelLyrics}}mp3-on{{/if}}" data-action="toggle-panel" data-panel="lyrics" title="Lyrics">
+      <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 2a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4zm-7 9h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11z"/></svg>
+    </button>
+    <button class="mp3-icon-btn {{#if panelQueue}}mp3-on{{/if}}" data-action="toggle-panel" data-panel="queue" title="Queue">
+      <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M3 5h14v2H3zm0 4h14v2H3zm0 4h9v2H3zm12 0 6 3.5-6 3.5z"/></svg>
+    </button>
+    <button class="mp3-icon-btn" data-action="mute" title="Mute (M)">
+      <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M4 9h4l5-4v14l-5-4H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+    </button>
+    <input class="mp3-volume" type="range" min="0" max="100" value="{{volumePct}}" data-action="volume" aria-label="Volume">
+    <button class="mp3-icon-btn" data-action="window" data-window="mini" title="Mini player">
+      <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M3 4h18v16H3zm2 2v12h14V6zm6 6h7v5h-7z"/></svg>
+    </button>
+  </div>
+</div>

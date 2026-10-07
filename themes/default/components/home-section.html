@@ -1,0 +1,7 @@
+<section class="mp3-section" data-section="{{id}}">
+  <div class="mp3-section-head">
+    <h2>{{title}}</h2>
+    <button class="mp3-link mp3-section-hide" data-action="home-hide" data-id="{{id}}" title="Hide this section from Home">Hide</button>
+  </div>
+  <div class="mp3-shelf">{{#each items}}{{> media-card}}{{/each}}</div>
+</section>

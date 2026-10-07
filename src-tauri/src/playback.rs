@@ -624,3 +624,10 @@ async fn recv_opt(ch: &mut Option<engine_audio::PlayerEventChannel>) -> Option<P
         None => std::future::pending().await,
     }
 }
+
+/// Spawn with the persisted crossfade setting applied.
+pub fn spawn_with(audio: AudioEngine, store: Arc<StateStore>, crossfade_ms: u32) -> PlaybackHandle {
+    let h = spawn(audio, store);
+    h.send(Cmd::SetCrossfade(crossfade_ms));
+    h
+}

@@ -1,0 +1,22 @@
+<header class="mp3-hero">
+  <div class="mp3-hero-bg"></div>
+  <div class="mp3-navbtns mp3-hero-nav">
+    <button class="mp3-icon-btn mp3-round" data-action="back" title="Back"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M15.4 5 16.8 6.4 11.2 12l5.6 5.6-1.4 1.4-7-7z"/></svg></button>
+    <button class="mp3-icon-btn mp3-round" data-action="forward" title="Forward"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="m8.6 5 7 7-7 7-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg></button>
+  </div>
+  <div class="mp3-hero-body">
+    {{#if liked}}
+      <div class="mp3-hero-art mp3-liked-art"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 20.3 10.6 19C5.4 14.4 2 11.3 2 7.5 2 4.4 4.4 2 7.5 2c1.7 0 3.4.8 4.5 2.1C13.1 2.8 14.8 2 16.5 2 19.6 2 22 4.4 22 7.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg></div>
+    {{else}}
+      {{#if images}}<img class="mp3-hero-art" src="{{images | img:300}}" alt="">{{else}}<div class="mp3-hero-art mp3-art-blank"></div>{{/if}}
+    {{/if}}
+    <div class="mp3-hero-text">
+      <div class="mp3-kind">{{kind}}</div>
+      <h1 class="mp3-hero-title">{{title}}</h1>
+      {{#if description}}<p class="mp3-hero-desc mp3-muted">{{description}}</p>{{/if}}
+      <div class="mp3-hero-meta">
+        {{#if artists}}{{#each artists}}<a class="mp3-strong" data-action="open" data-uri="{{uri}}">{{name}}</a>{{#unless @last}}, {{/unless}}{{/each}} · {{/if}}<span class="mp3-muted">{{subtitle}}</span>
+      </div>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,30 @@
+<div class="mp3-page mp3-editor">
+  <header class="mp3-page-top">
+    <div class="mp3-navbtns"><button class="mp3-icon-btn mp3-round" data-action="back" title="Back"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M15.4 5 16.8 6.4 11.2 12l5.6 5.6-1.4 1.4-7-7z"/></svg></button></div>
+    <h1>Edit “{{name}}”</h1>
+    <div class="mp3-inline">
+      <button class="mp3-btn mp3-btn-ghost" data-action="editor-export">Export</button>
+      <button class="mp3-btn" data-action="editor-save">Save</button>
+    </div>
+  </header>
+  <p class="mp3-muted mp3-small">Changes preview live in this window. Save writes the theme files and reloads it if it's active.</p>
+  <div class="mp3-editor-grid">
+    <section class="mp3-set-group">
+      <h2>Colors</h2>
+      {{#each colors}}<label class="mp3-set-row"><span>{{key}}</span><input type="text" value="{{value}}" data-editor-color="{{key}}" data-action="editor-preview" spellcheck="false"></label>{{/each}}
+    </section>
+    <section class="mp3-set-group">
+      <h2>Type &amp; shape</h2>
+      <label class="mp3-set-row"><span>Body font</span><input type="text" value="{{fonts.body}}" data-editor-font="body" data-action="editor-preview"></label>
+      <label class="mp3-set-row"><span>Heading font</span><input type="text" value="{{fonts.heading}}" data-editor-font="heading" data-action="editor-preview"></label>
+      <label class="mp3-set-row"><span>Corner radius</span><input type="range" min="0" max="24" value="{{radius}}" data-editor="radius" data-action="editor-preview"></label>
+      <label class="mp3-set-row"><span>Density</span><select data-editor="density" data-action="editor-preview"><option {{#if density | eq:compact}}selected{{/if}}>compact</option><option {{#if density | eq:comfortable}}selected{{/if}}>comfortable</option><option {{#if density | eq:spacious}}selected{{/if}}>spacious</option></select></label>
+      <h2>layout.json</h2>
+      <textarea class="mp3-code" rows="10" data-editor="layout" spellcheck="false">{{layout}}</textarea>
+    </section>
+  </div>
+  <section class="mp3-set-group">
+    <h2>theme.css</h2>
+    <textarea class="mp3-code mp3-code-big" rows="22" data-editor="css" data-action="editor-preview" spellcheck="false">{{css}}</textarea>
+  </section>
+</div>

@@ -1,0 +1,19 @@
+{
+  "normal": {
+    "areas": ["sidebar main panel", "player player player"],
+    "columns": ["var(--sidebar-w)", "minmax(0, 1fr)", "var(--panel-w)"],
+    "rows": ["minmax(0, 1fr)", "var(--player-h)"]
+  },
+  "compact": {
+    "areas": ["main", "player"],
+    "columns": ["minmax(0, 1fr)"],
+    "rows": ["minmax(0, 1fr)", "var(--player-h)"]
+  },
+  "regions": {
+    "sidebar": { "visible": true, "collapsible": true },
+    "main": { "visible": true },
+    "panel": { "visible": true, "collapsible": true },
+    "player": { "visible": true },
+    "topbar": { "visible": false }
+  }
+}

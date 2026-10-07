@@ -1,0 +1,24 @@
+<div class="mp3-page mp3-artist">
+  <header class="mp3-hero mp3-hero-artist">
+    <div class="mp3-hero-bg"></div>
+    <div class="mp3-navbtns mp3-hero-nav">
+      <button class="mp3-icon-btn mp3-round" data-action="back" title="Back"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M15.4 5 16.8 6.4 11.2 12l5.6 5.6-1.4 1.4-7-7z"/></svg></button>
+    </div>
+    <div class="mp3-hero-body">
+      {{#if images}}<img class="mp3-hero-art mp3-round-art" src="{{images | img:300}}" alt="">{{/if}}
+      <div class="mp3-hero-text">
+        <div class="mp3-kind">Artist</div>
+        <h1 class="mp3-hero-title">{{name}}</h1>
+      </div>
+    </div>
+  </header>
+  <div class="mp3-actions-row">
+    <button class="mp3-play-big" data-action="play-context" data-uri="{{uri}}" title="Play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="mp3-icon-btn mp3-lg" data-action="shuffle-context" data-uri="{{uri}}" title="Shuffle play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M17 3l4 4-4 4V8h-2.6l-2.3 3.2-1.2-1.7L13.4 6H17zM3 6h4.6l8.4 12H17v-3l4 4-4 4v-3h-2.6L6.6 8H3zm0 10h3.6l1.7-2.4 1.2 1.7L7.6 18H3z"/></svg></button>
+  </div>
+  <h2 class="mp3-h2">Popular</h2>
+  <div data-vlist="{{listKey}}" data-row="track-row" data-row-height="56"></div>
+  {{#if albums}}<section class="mp3-section"><div class="mp3-section-head"><h2>Albums</h2></div><div class="mp3-shelf">{{#each albums}}{{> media-card}}{{/each}}</div></section>{{/if}}
+  {{#if singles}}<section class="mp3-section"><div class="mp3-section-head"><h2>Singles and EPs</h2></div><div class="mp3-shelf">{{#each singles}}{{> media-card}}{{/each}}</div></section>{{/if}}
+  {{#if related}}<section class="mp3-section"><div class="mp3-section-head"><h2>Fans also like</h2></div><div class="mp3-shelf">{{#each related}}<div class="mp3-card mp3-card-round" data-action="open" data-uri="{{uri}}"><div class="mp3-card-art"><span class="mp3-art-blank mp3-initial">{{name | first}}</span></div><div class="mp3-card-title mp3-truncate">{{name}}</div><div class="mp3-card-sub">Artist</div></div>{{/each}}</div></section>{{/if}}
+</div>

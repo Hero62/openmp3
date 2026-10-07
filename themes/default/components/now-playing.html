@@ -1,0 +1,16 @@
+<div class="mp3-np">
+  <div class="mp3-np-bg"></div>
+  <button class="mp3-icon-btn mp3-round mp3-np-close" data-action="now-playing" title="Close"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="m12 15.4-7-7L6.4 7l5.6 5.6L17.6 7 19 8.4z"/></svg></button>
+  {{#if track}}
+  <div class="mp3-np-body">
+    <div class="mp3-np-left">
+      {{#if bigCover}}<img class="mp3-np-cover" src="{{bigCover}}" alt="">{{/if}}
+      <div class="mp3-np-title mp3-truncate">{{track.title}}</div>
+      <div class="mp3-np-artists mp3-truncate">{{#each track.artists}}<a data-action="open" data-uri="{{uri}}">{{name}}</a>{{#unless @last}}, {{/unless}}{{/each}}</div>
+    </div>
+    <div class="mp3-np-right">{{> lyrics-view}}</div>
+  </div>
+  {{else}}
+  <div class="mp3-empty"><h2>Nothing playing</h2></div>
+  {{/if}}
+</div>

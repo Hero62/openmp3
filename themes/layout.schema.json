@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mp3palace://layout.schema.json",
+  "title": "mp3palace layout.json",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "normal": { "$ref": "#/$defs/grid" },
+    "compact": { "$ref": "#/$defs/grid" },
+    "regions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sidebar": { "$ref": "#/$defs/region" },
+        "main": { "$ref": "#/$defs/region" },
+        "panel": { "$ref": "#/$defs/region" },
+        "player": { "$ref": "#/$defs/region" },
+        "topbar": { "$ref": "#/$defs/region" }
+      }
+    }
+  },
+  "$defs": {
+    "track": { "type": "string", "maxLength": 40, "pattern": "^(auto|min-content|max-content|[0-9.]+(px|fr|%|rem|em)|var\\(--[a-z-]+\\)|minmax\\([^;{}()]{1,30}\\))$" },
+    "grid": {
+      "type": "object",
+      "required": ["areas", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "areas": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "string", "pattern": "^((sidebar|main|panel|player|topbar|\\.)( |$))+$" } },
+        "columns": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/track" } },
+        "rows": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/track" } }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "visible": { "type": "boolean" },
+        "collapsible": { "type": "boolean" }
+      }
+    }
+  }
+}

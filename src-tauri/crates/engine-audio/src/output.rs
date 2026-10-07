@@ -69,6 +69,8 @@ pub struct OutputShared {
     pub last_rms: AtomicF32,
     pub frames_out: AtomicU64,
     pub tap: crate::analysis::Tap,
+    /// True while an output device is open.
+    pub device_ok: AtomicBool,
 }
 
 impl OutputShared {
@@ -81,38 +83,62 @@ impl OutputShared {
             last_rms: AtomicF32::new(0.0),
             frames_out: AtomicU64::new(0),
             tap: crate::analysis::Tap::new(),
+            device_ok: AtomicBool::new(false),
         })
     }
 }
 
-/// Owns the cpal stream (on its own thread, so the handle can stay `Send`).
+/// Owns the cpal stream on its own thread. Never fails: if no device exists
+/// yet it keeps retrying, and it rebuilds the stream when the device errors
+/// out or the Windows default output changes (e.g. headphones connect).
 pub struct AudioOutput {
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
 
+pub type Consumers = Arc<Mutex<Vec<rtrb::Consumer<f32>>>>;
+
 impl AudioOutput {
     pub fn start(shared: Arc<OutputShared>, consumers: Vec<rtrb::Consumer<f32>>) -> Result<Self> {
         let stop = Arc::new(AtomicBool::new(false));
-        let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<()>>();
         let stop2 = stop.clone();
-        let thread = std::thread::Builder::new()
-            .name("audio-out".into())
-            .spawn(move || {
-                let stream = match build_stream(shared, consumers) {
-                    Ok(s) => s,
-                    Err(e) => {
-                        let _ = ready_tx.send(Err(e));
-                        return;
+        let consumers: Consumers = Arc::new(Mutex::new(consumers));
+        let thread = std::thread::Builder::new().name("audio-out".into()).spawn(move || {
+            let mut stream: Option<cpal::Stream> = None;
+            let mut current_id = String::new();
+            let broken = Arc::new(AtomicBool::new(false));
+            let mut warned = false;
+            while !stop2.load(Ordering::Relaxed) {
+                let default_id = cpal::default_host()
+                    .default_output_device()
+                    .and_then(|d| d.id().ok())
+                    .map(|id| format!("{id:?}"))
+                    .unwrap_or_default();
+                let need = stream.is_none() || broken.load(Ordering::Relaxed) || (!default_id.is_empty() && default_id != current_id);
+                if need {
+                    drop(stream.take());
+                    broken.store(false, Ordering::Relaxed);
+                    match build_stream(shared.clone(), consumers.clone(), broken.clone()) {
+                        Ok(s) => {
+                            info!("audio output ready ({default_id})");
+                            stream = Some(s);
+                            current_id = default_id;
+                            shared.device_ok.store(true, Ordering::Relaxed);
+                            warned = false;
+                        }
+                        Err(e) => {
+                            shared.device_ok.store(false, Ordering::Relaxed);
+                            if !warned {
+                                log::warn!("no audio output yet ({e}); retrying");
+                                warned = true;
+                            }
+                        }
                     }
-                };
-                let _ = ready_tx.send(Ok(()));
-                while !stop2.load(Ordering::Relaxed) {
-                    std::thread::park_timeout(std::time::Duration::from_millis(500));
                 }
-                drop(stream);
-            })?;
-        ready_rx.recv().map_err(|_| anyhow!("audio thread died"))??;
+                std::thread::park_timeout(std::time::Duration::from_millis(1000));
+            }
+            drop(stream);
+        })?;
         Ok(Self { stop, thread: Some(thread) })
     }
 }
@@ -127,7 +153,7 @@ impl Drop for AudioOutput {
     }
 }
 
-fn build_stream(shared: Arc<OutputShared>, mut consumers: Vec<rtrb::Consumer<f32>>) -> Result<cpal::Stream> {
+fn build_stream(shared: Arc<OutputShared>, consumers: Consumers, broken: Arc<AtomicBool>) -> Result<cpal::Stream> {
     let host = cpal::default_host();
     let device = host.default_output_device().ok_or_else(|| anyhow!("no output device"))?;
     if let Ok(desc) = device.description() {
@@ -144,9 +170,16 @@ fn build_stream(shared: Arc<OutputShared>, mut consumers: Vec<rtrb::Consumer<f32
         .build_output_stream::<f32, _, _>(
             config,
             move |out: &mut [f32], _info| {
-                render(&shared, &mut consumers, &mut scratch, out);
+                // Only this callback locks the consumers while a stream exists.
+                match consumers.try_lock() {
+                    Ok(mut c) => render(&shared, &mut c, &mut scratch, out),
+                    Err(_) => out.fill(0.0),
+                }
             },
-            |e| error!("audio stream error: {e}"),
+            move |e| {
+                error!("audio stream error: {e}");
+                broken.store(true, Ordering::Relaxed);
+            },
             None,
         )
         .map_err(|e| anyhow!("build_output_stream: {e}"))?;

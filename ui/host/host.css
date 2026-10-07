@@ -1,4 +1,7 @@
-html, body { margin: 0; height: 100%; background: #121212; overflow: hidden; }
-#theme { border: 0; width: 100%; height: 100%; display: block; }
-#host-banner { position: fixed; left: 12px; right: 12px; bottom: 12px; padding: 10px 14px;
-  background: #3a1d1d; color: #fff; font: 13px system-ui; border-radius: 8px; z-index: 10; }
+html, body { margin: 0; height: 100%; background: #0e0e10; overflow: hidden; }
+#theme { border: 0; width: 100%; height: 100%; display: block; color-scheme: dark; }
+#host-banner { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); max-width: min(720px, 90vw);
+  display: flex; gap: 12px; align-items: center; padding: 10px 12px 10px 16px; background: #3b1720; color: #fff;
+  font: 13px/1.4 "Segoe UI", system-ui, sans-serif; border-radius: 8px; z-index: 10; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+#host-banner[hidden] { display: none; }
+#host-banner button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; padding: 0 4px; }

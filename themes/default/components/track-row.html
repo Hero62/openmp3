@@ -1,0 +1,15 @@
+<div class="mp3-track-row {{#unless track.playable}}mp3-unplayable{{/unless}} {{#if hideCover}}mp3-tr-nocover{{/if}}" data-track-uri="{{track.uri}}" data-dblaction="play" title="{{track.title}}">
+  <div class="mp3-tr-num"><span class="mp3-tr-index">{{number}}</span><button class="mp3-tr-play" data-action="play" title="Play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg></button></div>
+  <div class="mp3-tr-main">
+    {{#unless hideCover}}{{#if track.album.images}}<img class="mp3-tr-art" loading="lazy" decoding="async" src="{{track.album.images | img:64}}" alt="">{{else}}<span class="mp3-tr-art"></span>{{/if}}{{/unless}}
+    <div class="mp3-tr-text">
+      <div class="mp3-tr-title mp3-truncate">{{track.title}}</div>
+      <div class="mp3-tr-artists mp3-truncate">{{#if track.explicit}}<span class="mp3-explicit">E</span>{{/if}}{{#each track.artists}}<a data-action="open" data-uri="{{uri}}">{{name}}</a>{{#unless @last}}, {{/unless}}{{/each}}</div>
+    </div>
+  </div>
+  {{#unless hideCover}}<a class="mp3-tr-album mp3-truncate" data-action="open" data-uri="{{track.album.uri}}">{{track.album.name}}</a>{{/unless}}
+  <div class="mp3-tr-added mp3-truncate">{{track.addedAt | date}}</div>
+  <button class="mp3-icon-btn mp3-tr-like" data-action="like" data-uri="{{track.uri}}" title="Like"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 20.3 10.6 19C5.4 14.4 2 11.3 2 7.5 2 4.4 4.4 2 7.5 2c1.7 0 3.4.8 4.5 2.1C13.1 2.8 14.8 2 16.5 2 19.6 2 22 4.4 22 7.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg></button>
+  <div class="mp3-tr-dur">{{track.durationMs | duration}}</div>
+  <button class="mp3-icon-btn mp3-tr-more" data-action="context-menu" title="More"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M5 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg></button>
+</div>

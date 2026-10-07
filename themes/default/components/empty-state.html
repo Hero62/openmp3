@@ -1,0 +1,6 @@
+<div class="mp3-empty">
+  <h2>{{#if title}}{{title}}{{else}}Nothing here yet{{/if}}</h2>
+  {{#if message}}<p class="mp3-muted">{{message}}</p>{{/if}}
+  {{#if session.state | eq:loggedOut}}<button class="mp3-btn" data-action="login">Log in to Spotify</button>{{/if}}
+  {{#if retry}}<button class="mp3-btn mp3-btn-ghost" data-action="retry">Try again</button>{{/if}}
+</div>

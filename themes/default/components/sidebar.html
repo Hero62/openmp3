@@ -1,0 +1,43 @@
+<nav class="mp3-nav">
+  <button class="mp3-nav-item {{#if route.view | eq:home}}mp3-active{{/if}}" data-action="nav" data-view="home" title="Home">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg><span class="mp3-label">Home</span>
+  </button>
+  <button class="mp3-nav-item {{#if route.view | eq:search}}mp3-active{{/if}}" data-action="nav" data-view="search" title="Search">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.74 4.74-1.41 1.41-4.74-4.74A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg><span class="mp3-label">Search</span>
+  </button>
+  <button class="mp3-nav-item {{#if route.view | eq:library}}mp3-active{{/if}}" data-action="nav" data-view="library" title="Your Library">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M4 3h2v18H4zm5 0h2v18H9zm5.2.6 1.9-.6 5.4 17.3-1.9.6z"/></svg><span class="mp3-label">Your Library</span>
+  </button>
+</nav>
+<div class="mp3-sidebar-head">
+  <span class="mp3-label mp3-sidebar-title">Playlists</span>
+  <button class="mp3-icon-btn mp3-label" data-action="create-playlist" title="Create playlist">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+  </button>
+  <button class="mp3-icon-btn" data-action="toggle-sidebar" title="Collapse sidebar">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M4 4h16v16H4zm2 2v12h4V6zm6 0v12h6V6z"/></svg>
+  </button>
+</div>
+<div class="mp3-scroll mp3-sidebar-list">
+  <button class="mp3-side-item {{#if route.view | eq:liked}}mp3-active{{/if}}" data-action="nav" data-view="liked" title="Liked Songs">
+    <span class="mp3-side-art mp3-liked-art"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 20.3 10.6 19C5.4 14.4 2 11.3 2 7.5 2 4.4 4.4 2 7.5 2c1.7 0 3.4.8 4.5 2.1C13.1 2.8 14.8 2 16.5 2 19.6 2 22 4.4 22 7.5c0 3.8-3.4 6.9-8.6 11.5z"/></svg></span>
+    <span class="mp3-side-text mp3-label"><span class="mp3-truncate">Liked Songs</span><small>Playlist</small></span>
+  </button>
+  {{#each playlists}}
+  <button class="mp3-side-item {{#if route.uri | eq:uri}}mp3-active{{/if}}" data-action="open" data-uri="{{uri}}" title="{{name}}">
+    {{#if images}}<img class="mp3-side-art" loading="lazy" decoding="async" src="{{images | img:64}}" alt="">{{else}}<span class="mp3-side-art mp3-art-blank"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M9 18a3 3 0 1 1-2-2.83V4h11v4h-9z"/></svg></span>{{/if}}
+    <span class="mp3-side-text mp3-label"><span class="mp3-truncate">{{name}}</span><small class="mp3-truncate">Playlist · {{owner}}</small></span>
+  </button>
+  {{/each}}
+</div>
+<div class="mp3-sidebar-foot">
+  <button class="mp3-icon-btn" data-action="nav" data-view="settings" title="Settings">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM10.6 2h2.8l.5 2.6 1.6.9 2.5-.9 1.4 2.4-2 1.8v1.8l2 1.8-1.4 2.4-2.5-.9-1.6.9-.5 2.6h-2.8l-.5-2.6-1.6-.9-2.5.9-1.4-2.4 2-1.8v-1.8l-2-1.8 1.4-2.4 2.5.9 1.6-.9z"/></svg>
+  </button>
+  <button class="mp3-icon-btn" data-action="nav" data-view="themes" title="Themes">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M12 3a9 9 0 0 0 0 18c1 0 1.6-.8 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6h1.9A4.7 4.7 0 0 0 21 11c0-4.4-4-8-9-8zM6.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+  </button>
+  <button class="mp3-icon-btn" data-action="command-bar" title="Command bar (Ctrl+K)">
+    <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.74 4.74-1.41 1.41-4.74-4.74A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg><kbd class="mp3-label">Ctrl K</kbd>
+  </button>
+</div>

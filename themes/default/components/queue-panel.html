@@ -1,0 +1,17 @@
+<div class="mp3-scroll mp3-queue {{#if full}}mp3-queue-full{{/if}}">
+  {{#with queue}}
+    {{#if current}}
+      <h4 class="mp3-q-head">Now playing</h4>
+      {{> queue-row current}}
+    {{/if}}
+    {{#if userQueue}}
+      <div class="mp3-q-headrow"><h4 class="mp3-q-head">Next in queue</h4><button class="mp3-link" data-action="queue-clear">Clear</button></div>
+      {{#each userQueue}}{{> queue-row}}{{/each}}
+    {{/if}}
+    {{#if upNext}}
+      <h4 class="mp3-q-head">Next from {{#if context}}{{context.name}}{{else}}context{{/if}}</h4>
+      {{#each upNext}}{{> queue-row}}{{/each}}
+    {{/if}}
+    {{#unless current}}{{#unless userQueue}}<div class="mp3-empty-small">Your queue is empty. Right-click a song and pick “Add to queue”.</div>{{/unless}}{{/unless}}
+  {{/with}}
+</div>

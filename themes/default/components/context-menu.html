@@ -1,0 +1,18 @@
+<div class="mp3-menu">
+  <button class="mp3-menu-item" data-action="play-next">Play next</button>
+  <button class="mp3-menu-item" data-action="queue-add">Add to queue</button>
+  <div class="mp3-menu-sep"></div>
+  <button class="mp3-menu-item" data-action="like">{{#if liked}}Remove from Liked Songs{{else}}Save to Liked Songs{{/if}}</button>
+  {{#if playlists}}
+  <div class="mp3-menu-sub">
+    <span class="mp3-menu-item">Add to playlist ›</span>
+    <div class="mp3-menu mp3-menu-nested">
+      {{#each playlists}}<button class="mp3-menu-item mp3-truncate" data-action="add-to-playlist" data-playlist="{{uri}}">{{name}}</button>{{/each}}
+    </div>
+  </div>
+  {{/if}}
+  {{#if canRemove}}<button class="mp3-menu-item" data-action="remove-from-playlist">Remove from this playlist</button>{{/if}}
+  <div class="mp3-menu-sep"></div>
+  {{#if album.uri}}<button class="mp3-menu-item" data-action="open" data-uri="{{album.uri}}">Go to album</button>{{/if}}
+  {{#each artists}}<button class="mp3-menu-item mp3-truncate" data-action="open" data-uri="{{uri}}">Go to {{name}}</button>{{/each}}
+</div>

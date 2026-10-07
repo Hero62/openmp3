@@ -1,0 +1,35 @@
+<div class="mp3-page mp3-themes">
+  <header class="mp3-page-top">
+    <h1>Themes</h1>
+    <div class="mp3-inline">
+      <button class="mp3-btn mp3-btn-ghost" data-action="theme-guide" title="Copies a complete Markdown guide for building themes (great to paste into an AI agent)">Copy theme guide</button>
+      <button class="mp3-btn mp3-btn-ghost" data-action="theme-export" data-id="default" title="Export Default as a .theme to start from">Export Default as template</button>
+      {{#if liveLink}}
+        <button class="mp3-btn mp3-btn-ghost" data-action="theme-live-unlink" title="{{liveLink}}">Unlink live folder</button>
+      {{else}}
+        <button class="mp3-btn mp3-btn-ghost" data-action="theme-live-link" title="Watch a folder and hot-reload on every save">Live link a folder…</button>
+      {{/if}}
+    </div>
+  </header>
+  <div class="mp3-theme-grid">
+    {{#each themes}}{{> theme-card}}{{/each}}
+    <button class="mp3-theme-card mp3-theme-add" data-action="theme-import" title="Import a .theme file">
+      <span class="mp3-plus">+</span><span>Import .theme</span>
+    </button>
+  </div>
+  {{#with perf}}
+  <section class="mp3-set-group mp3-perf">
+    <h2>Performance — active theme</h2>
+    <div class="mp3-perf-grid">
+      <div><b>{{cpu}}%</b><small>CPU (UI process)</small></div>
+      <div><b>{{memoryMb}} MB</b><small>Memory (UI)</small></div>
+      <div><b>{{engineMb}} MB</b><small>Memory (engine)</small></div>
+      <div><b>{{frameMs}} ms</b><small>Frame time (median)</small></div>
+      <div><b>{{frameP95}} ms</b><small>Frame time (p95)</small></div>
+      <div><b>{{heapMb}} MB</b><small>JS heap</small></div>
+      <div><b>{{nodes}}</b><small>DOM nodes</small></div>
+    </div>
+  </section>
+  {{/with}}
+  <p class="mp3-muted mp3-small">Ctrl+Shift+D always switches back to Default. Themes run sandboxed: no network, no files, no credentials.</p>
+</div>

@@ -1,0 +1,15 @@
+<div class="mp3-theme-card {{#if active}}mp3-active{{/if}} {{#if error}}mp3-theme-broken{{/if}}">
+  <div class="mp3-theme-swatch" style="background: {{bg}}"><span style="background: {{accent}}"></span></div>
+  <div class="mp3-theme-info">
+    <div class="mp3-theme-name mp3-truncate">{{name}} {{#if builtin}}<small class="mp3-pill">built-in</small>{{/if}}{{#if hasScript}}<small class="mp3-pill mp3-pill-warn" title="This theme runs its own script">script</small>{{/if}}</div>
+    <div class="mp3-muted mp3-small mp3-truncate">{{#if author}}by {{author}} · {{/if}}v{{version}}</div>
+    {{#if error}}<div class="mp3-theme-error">{{error}}</div>{{/if}}
+  </div>
+  <div class="mp3-theme-actions">
+    {{#if active}}<span class="mp3-pill">Active</span>{{else}}{{#unless error}}<button class="mp3-btn" data-action="theme-apply" data-id="{{id}}">Apply</button>{{/unless}}{{/if}}
+    <button class="mp3-btn mp3-btn-ghost" data-action="theme-duplicate" data-id="{{id}}">Duplicate</button>
+    <button class="mp3-btn mp3-btn-ghost" data-action="theme-export" data-id="{{id}}">Export</button>
+    {{#unless builtin}}<button class="mp3-btn mp3-btn-ghost" data-action="theme-edit" data-id="{{id}}">Edit</button>
+    <button class="mp3-btn mp3-btn-ghost mp3-danger" data-action="theme-delete" data-id="{{id}}">Delete</button>{{/unless}}
+  </div>
+</div>

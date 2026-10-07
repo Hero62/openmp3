@@ -1,0 +1,12 @@
+<div class="mp3-lyrics {{#if full}}mp3-lyrics-full{{/if}}">
+  {{#if lyrics}}
+    {{#if lyrics.lines}}
+      {{#each lyrics.lines}}<p class="mp3-lyric-line">{{#if text}}{{text}}{{else}}♪{{/if}}{{#if roman}}<small class="mp3-lyric-roman">{{roman}}</small>{{/if}}{{#if translation}}<small class="mp3-lyric-trans">{{translation}}</small>{{/if}}</p>{{/each}}
+      <p class="mp3-lyrics-source">Lyrics provided by {{lyrics.source}}{{#unless lyrics.synced}} · not synced{{/unless}}</p>
+    {{else}}
+      <div class="mp3-empty-small">No lyrics for this song.</div>
+    {{/if}}
+  {{else}}
+    {{#if track}}<div class="mp3-empty-small">Loading lyrics…</div>{{else}}<div class="mp3-empty-small">Play something to see lyrics.</div>{{/if}}
+  {{/if}}
+</div>

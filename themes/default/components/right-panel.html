@@ -1,0 +1,6 @@
+<div class="mp3-panel-head">
+  <button class="mp3-tab {{#if panel | eq:queue}}mp3-active{{/if}}" data-action="toggle-panel" data-panel="queue">Queue</button>
+  <button class="mp3-tab {{#if panel | eq:lyrics}}mp3-active{{/if}}" data-action="toggle-panel" data-panel="lyrics">Lyrics</button>
+</div>
+{{#if panel | eq:queue}}{{> queue-panel}}{{/if}}
+{{#if panel | eq:lyrics}}{{> lyrics-view}}{{/if}}

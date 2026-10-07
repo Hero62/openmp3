@@ -1,0 +1,21 @@
+<div class="mp3-page mp3-tracklist">
+  {{> playlist-header}}
+  <div class="mp3-actions-row">
+    <button class="mp3-play-big" data-action="play-context" data-uri="{{uri}}" title="Play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg></button>
+    <button class="mp3-icon-btn mp3-lg" data-action="shuffle-context" data-uri="{{uri}}" title="Shuffle play"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M17 3l4 4-4 4V8h-2.6l-2.3 3.2-1.2-1.7L13.4 6H17zM3 6h4.6l8.4 12H17v-3l4 4-4 4v-3h-2.6L6.6 8H3zm0 10h3.6l1.7-2.4 1.2 1.7L7.6 18H3z"/></svg></button>
+    {{#if isAlbum}}<button class="mp3-btn mp3-btn-ghost" data-action="save-album" data-uri="{{uri}}">Save</button>{{/if}}
+    {{#if ownedByMe}}
+      <button class="mp3-btn mp3-btn-ghost" data-action="rename-playlist" data-uri="{{uri}}" data-name="{{title}}">Rename</button>
+      <button class="mp3-btn mp3-btn-ghost mp3-danger" data-action="delete-playlist" data-uri="{{uri}}">Remove from library</button>
+    {{/if}}
+  </div>
+  <div class="mp3-tl-head {{#if isAlbum}}mp3-tr-nocover{{/if}}">
+    <span>#</span><span>Title</span>{{#unless isAlbum}}<span>Album</span>{{/unless}}<span>{{#if showAdded}}Date added{{/if}}</span><span></span><span>⏱</span><span></span>
+  </div>
+  {{#if count}}
+    <div data-vlist="{{listKey}}" data-row="track-row" data-row-height="56"></div>
+  {{else}}
+    <div class="mp3-empty-small">Nothing here yet.</div>
+  {{/if}}
+  {{#if label}}<p class="mp3-copyright mp3-muted">{{label}}</p>{{/if}}
+</div>

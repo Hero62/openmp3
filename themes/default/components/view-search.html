@@ -1,0 +1,33 @@
+<div class="mp3-page mp3-search">
+  <header class="mp3-page-top mp3-sticky">
+    <div class="mp3-navbtns">
+      <button class="mp3-icon-btn mp3-round" data-action="back" title="Back"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M15.4 5 16.8 6.4 11.2 12l5.6 5.6-1.4 1.4-7-7z"/></svg></button>
+    </div>
+    <label class="mp3-searchbox">
+      <svg viewBox="0 0 24 24" class="mp3-icon"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.74 4.74-1.41 1.41-4.74-4.74A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+      <input type="search" placeholder="What do you want to listen to?" value="{{query}}" data-action="search" autofocus spellcheck="false">
+    </label>
+  </header>
+  {{#if loading}}<div class="mp3-loading"><span></span><span></span><span></span></div>{{/if}}
+  {{#with results}}
+    <div class="mp3-search-top">
+      {{#with tracks | first}}
+      <div class="mp3-top-result" data-action="play" data-uri="{{uri}}">
+        <img src="{{album.images | img:300}}" alt="">
+        <div class="mp3-top-title mp3-truncate">{{title}}</div>
+        <div class="mp3-muted mp3-truncate">Song · {{artists | artists}}</div>
+        <span class="mp3-card-play mp3-visible"><svg viewBox="0 0 24 24" class="mp3-icon"><path d="M8 5v14l11-7z"/></svg></span>
+      </div>
+      {{/with}}
+      <div class="mp3-search-songs">
+        <h2>Songs</h2>
+        <div data-vlist="search-tracks" data-row="track-row" data-row-height="56"></div>
+      </div>
+    </div>
+    {{#if artists}}<section class="mp3-section"><div class="mp3-section-head"><h2>Artists</h2></div><div class="mp3-shelf">{{#each artists}}{{> media-card}}{{/each}}</div></section>{{/if}}
+    {{#if albums}}<section class="mp3-section"><div class="mp3-section-head"><h2>Albums</h2></div><div class="mp3-shelf">{{#each albums}}{{> media-card}}{{/each}}</div></section>{{/if}}
+    {{#if playlists}}<section class="mp3-section"><div class="mp3-section-head"><h2>Playlists</h2></div><div class="mp3-shelf">{{#each playlists}}{{> media-card}}{{/each}}</div></section>{{/if}}
+    {{#if shows}}<section class="mp3-section"><div class="mp3-section-head"><h2>Podcasts</h2></div><div class="mp3-shelf">{{#each shows}}{{> media-card}}{{/each}}</div></section>{{/if}}
+  {{/with}}
+  {{#unless query}}<div class="mp3-empty"><h2>Search Spotify</h2><p class="mp3-muted">Songs, artists, albums, playlists and podcasts.</p></div>{{/unless}}
+</div>

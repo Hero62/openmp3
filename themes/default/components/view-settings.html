@@ -1,0 +1,89 @@
+<div class="mp3-page mp3-settings">
+  <header class="mp3-page-top"><h1>Settings</h1></header>
+
+  <section class="mp3-set-group">
+    <h2>Account</h2>
+    <div class="mp3-set-row"><span>{{#if session.username}}Signed in as <b>{{session.displayName}}</b>{{else}}Not signed in{{/if}}</span>
+      {{#if session.username}}<button class="mp3-btn mp3-btn-ghost" data-action="logout">Log out</button>{{else}}<button class="mp3-btn" data-action="login">Log in</button>{{/if}}</div>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Playback</h2>
+    <label class="mp3-set-row"><span>Audio quality<small>Very High is 320 kbps (Premium)</small></span>
+      <select data-action="setting" data-setting="audio.quality">
+        <option value="very_high" {{#if quality320}}selected{{/if}}>Very High (320 kbps)</option>
+        <option value="high" {{#unless quality320}}selected{{/unless}}>High (160 kbps)</option>
+      </select></label>
+    <label class="mp3-set-row"><span>Crossfade<small>{{crossfadeSec}} s — 0 = gapless</small></span>
+      <input type="range" min="0" max="12" step="1" value="{{crossfadeSec}}" data-action="setting" data-setting="audio.crossfadeMs" data-scale="1000"></label>
+    <label class="mp3-set-row"><span>Volume normalization<small>Same loudness for every track</small></span>
+      <input type="checkbox" class="mp3-switch" {{#if s.audio.normalization}}checked{{/if}} data-action="setting" data-setting="audio.normalization"></label>
+    <label class="mp3-set-row"><span>Autoplay<small>Keep playing similar songs when your queue ends</small></span>
+      <input type="checkbox" class="mp3-switch" {{#if s.audio.autoplay}}checked{{/if}} data-action="setting" data-setting="audio.autoplay"></label>
+    <label class="mp3-set-row"><span>Audio cache size<small>{{s.audio.cacheSizeMb}} MB — recently played songs start instantly</small></span>
+      <input type="number" min="100" max="50000" step="100" value="{{s.audio.cacheSizeMb}}" data-action="setting" data-setting="audio.cacheSizeMb"></label>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Equalizer</h2>
+    <div class="mp3-set-row"><span>Enabled</span><input type="checkbox" class="mp3-switch" {{#if eq.enabled}}checked{{/if}} data-action="eq-toggle"></div>
+    <div class="mp3-set-row"><span>Preset</span>
+      <div class="mp3-inline">
+        <select data-action="eq-preset"><option value="">Choose…</option>{{#each presets}}<option value="{{name}}">{{name}}{{#unless builtin}} (mine){{/unless}}</option>{{/each}}</select>
+        <button class="mp3-btn mp3-btn-ghost" data-action="eq-save">Save as preset</button>
+      </div></div>
+    <div class="mp3-eq">
+      {{#each eqBands}}<label class="mp3-eq-band"><input type="range" min="-12" max="12" step="0.5" value="{{gain}}" data-action="eq-band" orient="vertical"><small>{{freq}}</small></label>{{/each}}
+    </div>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Home</h2>
+    <label class="mp3-set-row"><span>Show podcasts</span><input type="checkbox" class="mp3-switch" {{#if s.home.showPodcasts}}checked{{/if}} data-action="setting" data-setting="home.showPodcasts"></label>
+    <label class="mp3-set-row"><span>Show audiobooks</span><input type="checkbox" class="mp3-switch" {{#if s.home.showAudiobooks}}checked{{/if}} data-action="setting" data-setting="home.showAudiobooks"></label>
+    <details class="mp3-details"><summary>Sections ({{sections | length}})</summary>
+      {{#each sections}}<label class="mp3-set-row mp3-set-sub"><span class="mp3-truncate">{{title}}<small>{{kind}}</small></span><input type="checkbox" class="mp3-switch" {{#if shown}}checked{{/if}} data-action="home-section" data-id="{{id}}"></label>{{/each}}
+    </details>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Lyrics</h2>
+    <label class="mp3-set-row"><span>Fall back to LRCLIB<small>When Spotify has no lyrics</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.lrclibFallback}}checked{{/if}} data-action="setting" data-setting="lyrics.lrclibFallback"></label>
+    <label class="mp3-set-row"><span>Romanize<small>Show Latin-script readings (done on this PC)</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.romanize}}checked{{/if}} data-action="setting" data-setting="lyrics.romanize"></label>
+    <label class="mp3-set-row"><span>Translate<small>Off by default. Sends lyric lines to an online translation service.</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.translate}}checked{{/if}} data-action="setting" data-setting="lyrics.translate"></label>
+    <label class="mp3-set-row"><span>Translate to</span><input type="text" maxlength="5" value="{{s.lyrics.translateTo}}" data-action="setting" data-setting="lyrics.translateTo" style="width:64px"></label>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Global hotkeys</h2>
+    <label class="mp3-set-row"><span>Enabled<small>Work even when the app isn't focused</small></span><input type="checkbox" class="mp3-switch" {{#if s.hotkeys.enabled}}checked{{/if}} data-action="setting" data-setting="hotkeys.enabled"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Play / pause</span><input type="text" value="{{s.hotkeys.playPause}}" data-action="setting" data-setting="hotkeys.playPause"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Next</span><input type="text" value="{{s.hotkeys.next}}" data-action="setting" data-setting="hotkeys.next"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Previous</span><input type="text" value="{{s.hotkeys.prev}}" data-action="setting" data-setting="hotkeys.prev"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Volume up</span><input type="text" value="{{s.hotkeys.volumeUp}}" data-action="setting" data-setting="hotkeys.volumeUp"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Volume down</span><input type="text" value="{{s.hotkeys.volumeDown}}" data-action="setting" data-setting="hotkeys.volumeDown"></label>
+    <label class="mp3-set-row mp3-set-sub"><span>Like</span><input type="text" value="{{s.hotkeys.like}}" data-action="setting" data-setting="hotkeys.like"></label>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Window</h2>
+    <label class="mp3-set-row"><span>Close to tray<small>Closing the window keeps music playing</small></span><input type="checkbox" class="mp3-switch" {{#if s.ui.closeToTray}}checked{{/if}} data-action="setting" data-setting="ui.closeToTray"></label>
+    <label class="mp3-set-row"><span>Compact mode</span><input type="checkbox" class="mp3-switch" {{#if s.ui.compact}}checked{{/if}} data-action="toggle-compact"></label>
+    <label class="mp3-set-row"><span>Mini player always on top</span><input type="checkbox" class="mp3-switch" {{#if s.ui.miniAlwaysOnTop}}checked{{/if}} data-action="setting" data-setting="ui.miniAlwaysOnTop"></label>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Themes</h2>
+    <div class="mp3-set-row"><span>Current theme: <b>{{s.theme}}</b></span><button class="mp3-btn mp3-btn-ghost" data-action="nav" data-view="themes">Manage themes</button></div>
+  </section>
+
+  <section class="mp3-set-group">
+    <h2>Keyboard</h2>
+    <div class="mp3-keys mp3-muted">
+      <span><kbd>Space</kbd> play/pause</span><span><kbd>←</kbd><kbd>→</kbd> seek 5 s</span><span><kbd>Ctrl</kbd>+<kbd>←</kbd><kbd>→</kbd> prev/next</span>
+      <span><kbd>Ctrl</kbd>+<kbd>↑</kbd><kbd>↓</kbd> volume</span><span><kbd>Ctrl</kbd>+<kbd>K</kbd> command bar</span><span><kbd>Ctrl</kbd>+<kbd>L</kbd> like</span>
+      <span><kbd>Ctrl</kbd>+<kbd>F</kbd> search</span><span><kbd>S</kbd> shuffle</span><span><kbd>R</kbd> repeat</span><span><kbd>M</kbd> mute</span><span><kbd>Q</kbd> queue</span><span><kbd>Y</kbd> lyrics</span>
+      <span><kbd>Alt</kbd>+<kbd>←</kbd><kbd>→</kbd> back/forward</span><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> reset theme</span>
+    </div>
+  </section>
+</div>
