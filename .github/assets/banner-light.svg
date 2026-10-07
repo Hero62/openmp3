@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="mp3palace: A lightweight, fully themeable Spotify player for Windows">
+<title>mp3palace — A lightweight, fully themeable Spotify player for Windows</title>
+<defs>
+  <radialGradient id="g1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
+  <radialGradient id="g2"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
+  <linearGradient id="tg" x1="0" x2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#06b6d4"/></linearGradient>
+  <clipPath id="c"><rect width="1280" height="320" rx="19"/></clipPath>
+</defs>
+<style>
+  @keyframes shift { 0% { transform: translateX(-30%); } 100% { transform: translateX(30%); } }
+  @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .glow { animation: shift 9s ease-in-out infinite alternate; }
+  .in { animation: rise .9s ease-out both; }
+  .in2 { animation: rise .9s .35s ease-out both; }
+  @media (prefers-reduced-motion: reduce) { .glow,.in,.in2 { animation: none !important; } }
+</style>
+<g clip-path="url(#c)"><rect width="1280" height="320" rx="19" fill="#ffffff"/><g class="glow" opacity="0.35"><ellipse cx="384" cy="64" rx="448" ry="288" fill="url(#g1)"/><ellipse cx="960" cy="288" rx="384" ry="256" fill="url(#g2)"/></g></g>
+<text class="in" x="50%" y="137" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="96" font-weight="800" letter-spacing="-1.9" fill="url(#tg)">mp3palace</text>
+<text class="in2" x="50%" y="188" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="27" fill="#3d444d">A lightweight, fully themeable Spotify player for Windows</text>
+<g class="in2"><rect x="431" y="218" width="418" height="43" rx="22" fill="none" stroke="#8b5cf6" stroke-opacity=".7"/><text x="50%" y="247" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="22" fill="#3d444d">v1.0.0 · Tauri v2 · Rust</text></g>
+</svg>

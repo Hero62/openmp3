@@ -13,6 +13,8 @@ pub const MAX_GAIN_DB: f32 = 12.0;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Band {
     pub freq: f32,
+    /// JSON: `gainDb` (matches the theme API); `gain_db` still accepted for saved prefs.
+    #[serde(rename = "gainDb", alias = "gain_db")]
     pub gain_db: f32,
     pub q: f32,
 }
@@ -278,5 +280,18 @@ mod tests {
         assert_eq!(s.bands[0].gain_db, 0.0);
         assert_eq!(s.bands[1].gain_db, MAX_GAIN_DB);
         assert_eq!(s.bands[2].freq, 20.0);
+    }
+}
+
+#[cfg(test)]
+mod serde_tests {
+    use super::*;
+
+    #[test]
+    fn band_json_is_camel_case_and_reads_old_prefs() {
+        let s = serde_json::to_string(&Band { freq: 31.0, gain_db: 6.0, q: 1.0 }).unwrap();
+        assert!(s.contains("\"gainDb\":6"), "{s}");
+        let old: Band = serde_json::from_str(r#"{"freq":31,"gain_db":4,"q":1}"#).unwrap();
+        assert_eq!(old.gain_db, 4.0);
     }
 }

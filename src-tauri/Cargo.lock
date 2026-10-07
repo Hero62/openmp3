@@ -1263,6 +1263,7 @@ dependencies = [
  "realfft",
  "rtrb",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

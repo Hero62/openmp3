@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="mp3palace: A lightweight, fully themeable Spotify player for Windows">
+<title>mp3palace — A lightweight, fully themeable Spotify player for Windows</title>
+<defs>
+  <radialGradient id="g1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
+  <radialGradient id="g2"><stop offset="0" stop-color="#06b6d4"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
+  <linearGradient id="tg" x1="0" x2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#06b6d4"/></linearGradient>
+  <clipPath id="c"><rect width="1280" height="640" rx="38"/></clipPath>
+</defs>
+<style>
+</style>
+<g clip-path="url(#c)"><rect width="1280" height="640" rx="38" fill="#ffffff"/><g class="glow" opacity="0.35"><ellipse cx="384" cy="128" rx="448" ry="576" fill="url(#g1)"/><ellipse cx="960" cy="576" rx="384" ry="512" fill="url(#g2)"/></g></g>
+<text class="in" x="50%" y="355" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="192" font-weight="800" letter-spacing="-3.8" fill="url(#tg)">mp3palace</text>
+<text class="in2" x="50%" y="435" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif" font-size="42" fill="#3d444d">A lightweight, fully themeable Spotify player for Windows</text>
+
+</svg>

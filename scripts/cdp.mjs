@@ -85,7 +85,17 @@ async function evalIn(js, inFrame) {
   } else if (cmd === "shot") {
     const { target } = await page();
     const c = await connect(target.webSocketDebuggerUrl);
-    const r = await c.send("Page.captureScreenshot", { format: "png" });
+    // SCALE=2 FORMAT=webp for crisp, small README screenshots.
+    const scale = Number(process.env.SCALE || 1);
+    const format = process.env.FORMAT || "png";
+    if (scale !== 1) {
+      const m = await c.send("Runtime.evaluate", { expression: "JSON.stringify([innerWidth, innerHeight])", returnByValue: true });
+      const [w, h] = JSON.parse(m.result.value);
+      await c.send("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: scale, mobile: false });
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+    const r = await c.send("Page.captureScreenshot", { format, ...(format === "png" ? {} : { quality: 88 }) });
+    if (scale !== 1) await c.send("Emulation.clearDeviceMetricsOverride");
     const fs = await import("node:fs");
     fs.writeFileSync(a1 || "shot.png", Buffer.from(r.data, "base64"));
     console.log("saved", a1 || "shot.png");
