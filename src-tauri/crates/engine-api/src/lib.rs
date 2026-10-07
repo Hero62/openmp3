@@ -82,7 +82,16 @@ pub struct Api {
 
 impl Api {
     pub fn open(db: &Path) -> Result<Arc<Self>> {
-        Ok(Arc::new(Self { cache: Cache::open(db)?, ep: RwLock::new(None) }))
+        let cache = Cache::open(db)?;
+        // Bump when cached shapes/semantics change; old entries are dropped.
+        const CACHE_VERSION: u32 = 3;
+        if cache.get::<u32>("meta:cache_version").map(|c| c.value) != Some(CACHE_VERSION) {
+            for p in ["lib:", "pl:", "al:", "ar:", "sh:", "home", "q:", "ly:", "arimg:"] {
+                cache.invalidate_prefix(p);
+            }
+            let _ = cache.put("meta:cache_version", &CACHE_VERSION);
+        }
+        Ok(Arc::new(Self { cache, ep: RwLock::new(None) }))
     }
 
     pub fn in_memory() -> Result<Arc<Self>> {
@@ -443,12 +452,14 @@ impl Api {
     pub async fn refresh_show(&self, uri: &str) -> Result<(Show, bool)> {
         let ep = self.ep().await?;
         let (_, s) = ep.shows_meta(&[uri.to_string()]).await?.into_iter().next().ok_or_else(|| anyhow!("show not found"))?;
+        // The episode association list is oldest-first; show newest first.
         let mut ep_uris = ep.show_episode_uris(uri).await.unwrap_or_default();
         if ep_uris.is_empty() {
             if let Ok(ctx) = ep.context(uri).await {
                 ep_uris = ctx.pages.iter().flat_map(|p| p.tracks.iter().filter_map(|t| t.uri.clone())).collect();
             }
         }
+        ep_uris.reverse();
         ep_uris.truncate(100);
         let items: Vec<(String, Option<i64>)> = ep_uris.into_iter().map(|u| (u, None)).collect();
         let show = Show {

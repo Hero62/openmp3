@@ -45,7 +45,8 @@ function connect(wsUrl) {
 
 async function page() {
   const ts = await targets();
-  const p = ts.find((t) => t.type === "page" && /tauri\.localhost/.test(t.url));
+  const want = process.env.CDP_PAGE || "";
+  const p = ts.find((t) => t.type === "page" && /tauri\.localhost/.test(t.url) && (want ? t.url.includes(want) : !t.url.includes("mini=1")));
   if (!p) throw new Error("no app page: " + JSON.stringify(ts.map((t) => [t.type, t.url])));
   return { target: p, all: ts };
 }
@@ -53,7 +54,8 @@ async function page() {
 async function evalIn(js, inFrame) {
   const { target, all } = await page();
   if (inFrame) {
-    const f = all.find((t) => t.type === "iframe" && /themeb?\.localhost/.test(t.url));
+    const wantMini = (process.env.CDP_PAGE || "").includes("mini");
+    const f = all.find((t) => t.type === "iframe" && /themeb?\.localhost/.test(t.url) && t.url.includes("mini=1") === wantMini);
     if (f) {
       const c = await connect(f.webSocketDebuggerUrl);
       const r = await c.send("Runtime.evaluate", { expression: js, awaitPromise: true, returnByValue: true });

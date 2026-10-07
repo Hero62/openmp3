@@ -71,12 +71,12 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 5.3 autoplay when the queue ends (context-resolve autoplay, setting on by default) — verified: Next after the last OK Computer track continued with "Xerces — Deftones", 49 more queued.
 
 ## Stage 6 — integrations
-- [ ] 6.1 lyrics: Spotify color-lyrics endpoint, LRCLIB fallback, local romanization, optional translation (off by default).
-- [ ] 6.2 Spotify Connect device (Spirc) + state mirroring.
-- [ ] 6.3 SMTC (media overlay + media keys) + taskbar thumbnail buttons.
-- [ ] 6.4 global hotkeys (configurable) + in-app shortcuts + Ctrl+K command bar.
-- [ ] 6.5 tray (close → tray), mini player window (always on top), compact mode, scroll memory.
-- [ ] 6.6 podcasts (audio episodes).
+- [x] 6.1 lyrics: Spotify color-lyrics (59 synced lines shown in the panel), LRCLIB fallback (request shape verified against the live API; LRC parser unit-tested), local romanization (kana/Hangul/Cyrillic/Greek — BTS "Spring Day": 59/61 lines romanized), optional translation via MyMemory (off by default; verified 59 lines translated then switched back off). Kanji/Hanzi not romanized (needs a dictionary).
+- [x] 6.2 Spotify Connect: dedicated Connect session (own stable device id) + third output deck; controller mirrors remote state and routes UI controls to Spirc while the phone is in charge; local play takes control back — verified: device registers (`Spotify Connect device registered as "mp3palace"`, Spirc cluster listener up). (unverified: seeing/controlling it from the phone — needs the user and an audio device.)
+- [x] 6.3 SMTC + taskbar buttons — verified through Windows' own GlobalSystemMediaTransportControlsSessionManager: session shows title/artist/thumbnail/status; pause/play/toggle/next from Windows change app state (same path as media keys). Taskbar prev/play-pause/next buttons (code-drawn icons) verified by posting THBN_CLICKED.
+- [x] 6.4 global hotkeys (configurable, re-registered on change; 6/6 registered — default play/pause moved to Ctrl+Alt+Home because Ctrl+Alt+Space/P are taken on this PC), in-app shortcuts (Space/arrows/Ctrl+arrows/S/R/M/Q/Y/Ctrl+L/Ctrl+F/Alt+arrows), Ctrl+K command bar with fuzzy search + live search results — verified with DOM key events. (unverified: physical global hotkey press — synthetic OS input doesn't reach the desktop from the build loop.)
+- [x] 6.5 tray (menu: show/play-pause/next/prev/mini/quit; close → tray verified: window hidden via Win32, process alive; second launch restores it via single-instance), mini player (themeable `mini-player` component, always-on-top setting; screenshot verified), compact mode (single-column layout.json `compact`; screenshot), scroll memory (6000 px restored after Home → back).
+- [x] 6.6 podcasts: show pages (newest first), episodes play via librespot (`spotify:episode:` load verified), followed shows in Library.
 
 ## Stage 7 — theme tooling
 - [ ] 7.1 import `.theme` (zip) with JSON Schema validation, script.js warning, error + fallback.

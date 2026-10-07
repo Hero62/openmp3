@@ -25,6 +25,7 @@ pub fn run_from_args() -> Option<i32> {
         "--login" => rt.block_on(login_only()),
         "--engine-test" => rt.block_on(engine_test()),
         "--api-probe" => rt.block_on(api_probe()),
+        "--show-probe" => rt.block_on(show_probe(args.get(1).map(|s| s.as_str()).unwrap_or(""))),
         "--api-test" => rt.block_on(api_test(args.get(1).map(|s| s == "--edit").unwrap_or(false))),
         _ => return None,
     };
@@ -338,6 +339,24 @@ pub async fn api_test(edit: bool) -> Result<()> {
         t!("pl verify", api.refresh_playlist(&uri).await, |v: &(Playlist, bool)| format!("{:?}: {:?}", v.0.summary.name, v.0.tracks.iter().map(|t| &t.title).collect::<Vec<_>>()));
         t!("pl delete", api.playlist_delete(&uri).await, |_: &()| "ok".to_string());
         t!("pl gone", api.refresh_playlists().await, |v: &(Vec<PlaylistSummary>, bool)| format!("still listed: {}", v.0.iter().any(|p| p.uri == uri)));
+    }
+    Ok(())
+}
+
+pub async fn show_probe(uri: &str) -> Result<()> {
+    use engine_api::endpoints::Endpoints;
+    let mgr = SessionManager::new(AppPaths::resolve(), None)?;
+    let ep = Endpoints::new(connect(&mgr).await?);
+    let assoc = ep.show_episode_uris(uri).await?;
+    eprintln!("[show] assoc: {} uris, first {:?} last {:?}", assoc.len(), assoc.first(), assoc.last());
+    let ctx = ep.context(uri).await?;
+    eprintln!("[show] context pages={} first page tracks={} next={:?}", ctx.pages.len(), ctx.pages.first().map(|p| p.tracks.len()).unwrap_or(0), ctx.pages.first().and_then(|p| p.next_page_url.clone()));
+    for p in ctx.pages.iter().take(3) {
+        eprintln!("[show]  page tracks={} first={:?} last={:?} next={:?}", p.tracks.len(), p.tracks.first().and_then(|t| t.uri.clone()), p.tracks.last().and_then(|t| t.uri.clone()), p.next_page_url);
+    }
+    let eps = ep.episodes_meta(&[assoc.first().cloned().unwrap_or_default(), assoc.last().cloned().unwrap_or_default()]).await?;
+    for (u, e) in eps {
+        eprintln!("[show] {u} = {:?} published {:?}", e.name, e.publish_time.as_ref().map(|d| (d.year, d.month, d.day)));
     }
     Ok(())
 }

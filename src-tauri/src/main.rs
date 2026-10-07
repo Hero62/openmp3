@@ -109,7 +109,14 @@ fn main() {
                     let state = window.app_handle().state::<State>();
                     if state.settings().ui.close_to_tray && integrations::tray_ready() {
                         api.prevent_close();
-                        let _ = window.hide();
+                        // Hide outside the event callback; music keeps playing in the tray.
+                        let app = window.app_handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Some(w) = app.get_webview_window("main") {
+                                let r = w.hide();
+                                info!("closed to tray (hide: {r:?})");
+                            }
+                        });
                     }
                 }
                 _ => {}

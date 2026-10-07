@@ -108,7 +108,7 @@ impl Default for Hotkeys {
     fn default() -> Self {
         Self {
             enabled: true,
-            play_pause: "Ctrl+Alt+Space".into(),
+            play_pause: "Ctrl+Alt+Home".into(),
             next: "Ctrl+Alt+Right".into(),
             prev: "Ctrl+Alt+Left".into(),
             volume_up: "Ctrl+Alt+Up".into(),
