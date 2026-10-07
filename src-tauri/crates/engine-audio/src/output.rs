@@ -1,0 +1,192 @@
+//! cpal output stage. Runs the realtime callback: pull PCM from every deck's
+//! ring buffer, apply deck gains (crossfade), mix, run DSP, apply master
+//! volume, feed the analysis tap, write to the device.
+//!
+//! librespot always decodes to 44.1 kHz stereo. cpal 0.18 opens WASAPI shared
+//! streams with AUTOCONVERTPCM, so we ask for exactly that and let Windows do
+//! any device-rate conversion.
+
+use std::sync::{
+    atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
+    Arc, Mutex,
+};
+
+use anyhow::{anyhow, Result};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use log::{error, info};
+
+use crate::dsp::DspChain;
+
+pub const SAMPLE_RATE: u32 = 44_100;
+pub const CHANNELS: usize = 2;
+pub const NUM_DECKS: usize = 2;
+
+/// f32 stored as bits so the callback can read it lock-free.
+#[derive(Default)]
+pub struct AtomicF32(AtomicU32);
+impl AtomicF32 {
+    pub fn new(v: f32) -> Self {
+        Self(AtomicU32::new(v.to_bits()))
+    }
+    pub fn get(&self) -> f32 {
+        f32::from_bits(self.0.load(Ordering::Relaxed))
+    }
+    pub fn set(&self, v: f32) {
+        self.0.store(v.to_bits(), Ordering::Relaxed)
+    }
+}
+
+pub struct DeckShared {
+    pub gain: AtomicF32,
+    /// Set by the engine on load/seek; the callback drops buffered audio.
+    pub flush: AtomicBool,
+    /// Frames the callback has consumed from this deck (for position sync).
+    pub frames_played: AtomicU64,
+}
+
+impl Default for DeckShared {
+    fn default() -> Self {
+        Self { gain: AtomicF32::new(1.0), flush: AtomicBool::new(false), frames_played: AtomicU64::new(0) }
+    }
+}
+
+/// Everything the callback reads, shared with the engine.
+pub struct OutputShared {
+    pub decks: [DeckShared; NUM_DECKS],
+    pub volume: AtomicF32,
+    pub dsp: Mutex<DspChain>,
+    /// Peak / sum-of-squares of the last callback block (post-volume), for meters & tests.
+    pub last_peak: AtomicF32,
+    pub last_rms: AtomicF32,
+    pub frames_out: AtomicU64,
+    pub tap: crate::analysis::Tap,
+}
+
+impl OutputShared {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            decks: Default::default(),
+            volume: AtomicF32::new(1.0),
+            dsp: Mutex::new(DspChain::new(SAMPLE_RATE as f32)),
+            last_peak: AtomicF32::new(0.0),
+            last_rms: AtomicF32::new(0.0),
+            frames_out: AtomicU64::new(0),
+            tap: crate::analysis::Tap::new(),
+        })
+    }
+}
+
+/// Owns the cpal stream (on its own thread, so the handle can stay `Send`).
+pub struct AudioOutput {
+    stop: Arc<AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl AudioOutput {
+    pub fn start(shared: Arc<OutputShared>, consumers: Vec<rtrb::Consumer<f32>>) -> Result<Self> {
+        let stop = Arc::new(AtomicBool::new(false));
+        let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<()>>();
+        let stop2 = stop.clone();
+        let thread = std::thread::Builder::new()
+            .name("audio-out".into())
+            .spawn(move || {
+                let stream = match build_stream(shared, consumers) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        let _ = ready_tx.send(Err(e));
+                        return;
+                    }
+                };
+                let _ = ready_tx.send(Ok(()));
+                while !stop2.load(Ordering::Relaxed) {
+                    std::thread::park_timeout(std::time::Duration::from_millis(500));
+                }
+                drop(stream);
+            })?;
+        ready_rx.recv().map_err(|_| anyhow!("audio thread died"))??;
+        Ok(Self { stop, thread: Some(thread) })
+    }
+}
+
+impl Drop for AudioOutput {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(t) = self.thread.take() {
+            t.thread().unpark();
+            let _ = t.join();
+        }
+    }
+}
+
+fn build_stream(shared: Arc<OutputShared>, mut consumers: Vec<rtrb::Consumer<f32>>) -> Result<cpal::Stream> {
+    let host = cpal::default_host();
+    let device = host.default_output_device().ok_or_else(|| anyhow!("no output device"))?;
+    if let Ok(desc) = device.description() {
+        info!("audio output: {desc:?}");
+    }
+    let config = cpal::StreamConfig {
+        channels: CHANNELS as u16,
+        sample_rate: SAMPLE_RATE,
+        buffer_size: cpal::BufferSize::Default,
+    };
+
+    let mut scratch: Vec<f32> = vec![0.0; 8192];
+    let stream = device
+        .build_output_stream::<f32, _, _>(
+            config,
+            move |out: &mut [f32], _info| {
+                render(&shared, &mut consumers, &mut scratch, out);
+            },
+            |e| error!("audio stream error: {e}"),
+            None,
+        )
+        .map_err(|e| anyhow!("build_output_stream: {e}"))?;
+    stream.play().map_err(|e| anyhow!("stream play: {e}"))?;
+    Ok(stream)
+}
+
+fn render(shared: &OutputShared, consumers: &mut [rtrb::Consumer<f32>], scratch: &mut Vec<f32>, out: &mut [f32]) {
+    out.fill(0.0);
+    if scratch.len() < out.len() {
+        // Rare (first callback with an unusually large buffer); allocate once.
+        scratch.resize(out.len(), 0.0);
+    }
+    for (i, cons) in consumers.iter_mut().enumerate() {
+        let deck = &shared.decks[i];
+        if deck.flush.swap(false, Ordering::AcqRel) {
+            let n = cons.slots();
+            if let Ok(chunk) = cons.read_chunk(n) {
+                chunk.commit_all();
+            }
+        }
+        let buf = &mut scratch[..out.len()];
+        let (got, _) = cons.pop_partial_slice(buf);
+        let got = got.len();
+        if got == 0 {
+            continue;
+        }
+        let g = deck.gain.get();
+        for (o, s) in out[..got].iter_mut().zip(&scratch[..got]) {
+            *o += s * g;
+        }
+        deck.frames_played.fetch_add((got / CHANNELS) as u64, Ordering::Relaxed);
+    }
+
+    if let Ok(mut dsp) = shared.dsp.try_lock() {
+        dsp.process_interleaved(out);
+    }
+
+    let vol = shared.volume.get();
+    let mut peak = 0f32;
+    let mut sumsq = 0f32;
+    for s in out.iter_mut() {
+        *s = (*s * vol).clamp(-1.0, 1.0);
+        peak = peak.max(s.abs());
+        sumsq += *s * *s;
+    }
+    shared.last_peak.set(peak);
+    shared.last_rms.set((sumsq / out.len().max(1) as f32).sqrt());
+    shared.frames_out.fetch_add((out.len() / CHANNELS) as u64, Ordering::Relaxed);
+    shared.tap.push(out);
+}
+

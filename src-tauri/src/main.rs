@@ -1,10 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod devtools;
 mod theme_protocol;
 
 use tauri::Manager;
 
 fn main() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,librespot=info")).init();
+    if let Some(code) = devtools::run_from_args() {
+        std::process::exit(code);
+    }
     tauri::Builder::default()
         .register_uri_scheme_protocol("theme", |ctx, request| {
             theme_protocol::handle(ctx.app_handle(), &request)

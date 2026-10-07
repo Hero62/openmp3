@@ -5,4 +5,12 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+engine-common = { path = "../engine-common" }
+librespot-core.workspace = true
+librespot-playback.workspace = true
+cpal = "0.18"
+realfft = "3.5"
+rtrb = "0.4"
+log.workspace = true
+anyhow.workspace = true
 serde.workspace = true
