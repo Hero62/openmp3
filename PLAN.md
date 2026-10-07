@@ -34,9 +34,10 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] PLAN.md, README.md, HANDOFF.md.
 
 ## Stage 1 — login + one track through the custom sink
-- [ ] 1.1 engine-session: OAuth login (browser), credential cache in app data dir, reconnect from cache on launch.
-- [ ] 1.2 engine-audio: custom librespot `Sink` → ring buffer → cpal output (WASAPI default device), 320 kbps.
-- [ ] 1.3 dev command `mp3palace.exe --play-test <track uri>` plays a hardcoded track; verify samples reach cpal (peak/RMS logged) — audible confirmation needs the user.
+- [x] 1.1 engine-session: OAuth login (browser), credential cache in app data dir, reconnect from cache on launch — verified: browser login → `Authenticated as …`, credentials.json cached; stable device_id file.
+- [x] 1.2 engine-audio: custom librespot `Sink` → ring buffer → cpal output (WASAPI default device), 320 kbps — verified with 1.3.
+- [x] 1.3 dev command `mp3palace.exe --play-test <track uri>` plays a hardcoded track — verified: peak 0.41 / RMS logged at the cpal callback for 25 s, **user confirmed audible playback** (2026-10-07).
+- [ ] 1.4 librespot calls `exit(1)` on non-Premium accounts (`Session::check_catalogue`) — patch via `[patch.crates-io]` so the app shows "Premium required" instead of vanishing.
 
 ## Stage 2 — library data via internal endpoints + SQLite cache
 - [ ] 2.1 engine-api skeleton: single module for every internal endpoint (spclient / mercury / login5 token), typed results.

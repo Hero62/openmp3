@@ -5,10 +5,13 @@ _Last updated: 2026-10-07 by the build loop._
 ## Done and verified
 - **Stage 0:** a private repo, the Tauri v2 workspace with the engine crates, and the host page with a sandboxed theme frame served on `theme://` under a strict CSP header. The window is shown only after the theme's hello message reaches the host (smoke log: `[host] ready via hello`).
 
+- **Stage 1:** Spotify OAuth login (cached creds), custom sink → cpal, `--play-test` played a track and the user heard it.
+
 ## Not done yet
-Stages 1–8. See [PLAN.md](PLAN.md).
+Stage 1.4 (free-account exit patch), stages 2–8. See [PLAN.md](PLAN.md).
 
 ## Known issues / gotchas
+- librespot 0.8 `exit(1)`s the whole process when the logged-in account is not Premium (first login attempt hit a Free account). Patch pending (PLAN 1.4).
 - The machine's default Rust is GNU. This repo pins MSVC through `rust-toolchain.toml`.
 - `vergen` must stay at 9.0.6 in Cargo.lock, because 9.1.0 breaks librespot-core 0.8.0's build.
 - After a crash or kill, WebView2 helper processes (`--webview-exe-name=mp3palace.exe`) can hold the profile and cause `0x800700AA resource in use`. `scripts/smoke.sh` cleans them up.
@@ -17,5 +20,5 @@ Stages 1–8. See [PLAN.md](PLAN.md).
 - Stage 0 skeleton (debug build): about 38 MB working set for the main process, not counting the WebView2 processes. These aren't final numbers.
 
 ## Next steps
-1. Stage 1.1: engine-session OAuth login plus the credential cache. **Needs you:** the first login opens a browser window where you sign in to Spotify.
-2. Stage 1.2: the custom sink feeding cpal output.
+1. 1.4 patch librespot free-account exit.
+2. Stage 2 — engine-api internal endpoints (reference: docs/internal-endpoints.md) + SQLite cache.
