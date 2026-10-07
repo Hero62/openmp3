@@ -18,4 +18,5 @@
     <div class="mp3-empty-small">Nothing here yet.</div>
   {{/if}}
   {{#if label}}<p class="mp3-copyright mp3-muted">{{label}}</p>{{/if}}
+  {{#if kind | eq:playlist}}{{#unless liked}}<div data-recommended {{#if ownedByMe}}data-can-add="1"{{/if}}></div>{{/unless}}{{/if}}
 </div>

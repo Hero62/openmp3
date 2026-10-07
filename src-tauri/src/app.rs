@@ -392,6 +392,7 @@ pub async fn execute(app: &AppHandle, state: &State, theme_id: &str, cmd: Comman
         }
         Search(a) => to_value(state.api.search(&a.query, a.limit.unwrap_or(20)).await.map_err(|e| err(format!("{e:#}")))?),
         Recommendations(a) => to_value(state.api.recommendations(&a.uris).await.map_err(|e| err(format!("{e:#}")))?),
+        Radio(a) => Ok(json!(state.api.radio_playlist(&a.uri).await.map_err(|e| err(format!("{e:#}")))?)),
         Lyrics(a) => to_value(crate::lyrics::get(state, &a.uri).await.map_err(|e| err(format!("{e:#}")))?),
 
         // ---------------------------------------------------------- playlist editing

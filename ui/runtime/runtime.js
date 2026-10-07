@@ -642,6 +642,8 @@
     const pl = await call("browse.playlist", { uri: r.uri });
     setList("pl:" + r.uri, pl.tracks, { contextUri: r.uri, ownedByMe: pl.ownedByMe, playlistUri: r.uri });
     const total = pl.tracks.reduce((a, t) => a + (t.durationMs || 0), 0);
+    const seed = pl.tracks.find((t) => t.uri.startsWith("spotify:track:"));
+    if (seed) setTimeout(() => loadRecommended(r, seed.uri), 0);
     return render("view-tracklist", {
       kind: "playlist",
       title: pl.name,
@@ -656,6 +658,18 @@
       showAlbum: true,
     });
   };
+  // Recommended songs under a playlist (seeded by its first track).
+  async function loadRecommended(r, seed) {
+    try {
+      const recs = (await call("browse.recommendations", { uris: [seed] })).slice(0, 10);
+      if (!S.route || routeKey(S.route) !== routeKey(r)) return;
+      const box = $("[data-recommended]", region("main"));
+      if (!box || !recs.length) return;
+      setList("rec:" + r.uri, recs, { recommended: true, addTo: r.uri });
+      box.innerHTML = render("recommended-shelf", { listKey: "rec:" + r.uri, playlistUri: r.uri, canAdd: !!box.dataset.canAdd });
+      mountVirtualLists(box);
+    } catch (e) {}
+  }
   VIEWS.album = async (r) => {
     const al = await call("browse.album", { uri: r.uri });
     setList("al:" + r.uri, al.tracks, { contextUri: r.uri, hideCover: true });
@@ -827,6 +841,7 @@
     if (rc && rc.extra.contextUri) {
       return call("player.play", { uri: rc.extra.contextUri, trackUri: rc.track.uri, index: rc.index });
     }
+    if (rc && rc.track) return call("player.play", { uri: rc.track.uri });
     if (ctx) return call("player.play", { uri: ctx, trackUri: uri || undefined });
     if (uri) return call("player.play", { uri });
   };
@@ -971,6 +986,12 @@
   ACTIONS["save-album"] = async (el) => {
     await call("library.saveAlbum", { uri: el.dataset.uri });
     toast("Saved to your library");
+  };
+  ACTIONS.radio = async (el) => {
+    const uri = el.dataset.uri || (rowContext(el) || {}).track?.uri;
+    if (!uri) return;
+    const pl = await call("browse.radio", { uri });
+    navigate("playlist", { uri: pl });
   };
   ACTIONS.retry = () => renderRoute();
   ACTIONS.login = () => call("session.login");

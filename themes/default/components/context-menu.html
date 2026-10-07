@@ -13,6 +13,7 @@
   {{/if}}
   {{#if canRemove}}<button class="mp3-menu-item" data-action="remove-from-playlist">Remove from this playlist</button>{{/if}}
   <div class="mp3-menu-sep"></div>
+  <button class="mp3-menu-item" data-action="radio">Go to song radio</button>
   {{#if album.uri}}<button class="mp3-menu-item" data-action="open" data-uri="{{album.uri}}">Go to album</button>{{/if}}
   {{#each artists}}<button class="mp3-menu-item mp3-truncate" data-action="open" data-uri="{{uri}}">Go to {{name}}</button>{{/each}}
 </div>

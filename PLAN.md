@@ -66,9 +66,9 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [x] 4.8 Audio output self-heals: no device at launch → retries; device lost / default changed → stream rebuilt; decoder held (not skipped) while no device.
 
 ## Stage 5 — browse
-- [ ] 5.1 album + artist pages.
-- [ ] 5.2 home feed (internal home/browse endpoint), recommendations, custom Home sections.
-- [ ] 5.3 autoplay/radio when queue ends.
+- [x] 5.1 album + artist pages — screenshots: OK Computer (year, 12 songs, duration, save), Radiohead (popular, albums, singles, related).
+- [x] 5.2 home feed (pathfinder `home`, promo-free), recommendations (Recommended shelf under playlists via inspiredby-mix; "Go to song radio" in the track menu via `browse.radio`), custom Home — verified: 30 sections → 26 with podcasts/audiobooks hidden → 25 after hiding one (persisted in settings).
+- [x] 5.3 autoplay when the queue ends (context-resolve autoplay, setting on by default) — verified: Next after the last OK Computer track continued with "Xerces — Deftones", 49 more queued.
 
 ## Stage 6 — integrations
 - [ ] 6.1 lyrics: Spotify color-lyrics endpoint, LRCLIB fallback, local romanization, optional translation (off by default).

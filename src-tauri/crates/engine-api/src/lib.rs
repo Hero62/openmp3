@@ -560,6 +560,12 @@ impl Api {
         self.ordered_tracks(&uris).await
     }
 
+    /// Spotify's radio playlist for a seed entity.
+    pub async fn radio_playlist(&self, seed: &str) -> Result<String> {
+        let ep = self.ep().await?;
+        ep.radio_for(seed).await?.into_iter().next().ok_or_else(|| anyhow!("no radio for this item"))
+    }
+
     /// "Recommendations": a radio mix seeded by the given entities.
     pub async fn recommendations(&self, seeds: &[String]) -> Result<Vec<Track>> {
         let ep = self.ep().await?;

@@ -125,7 +125,7 @@ pub fn command(c: &Command) -> Result<(), BridgeError> {
         QueueAdd(a) | QueuePlayNext(a) => uris(&a.uris, true)?,
         Playlists(_) | Liked(_) | SavedAlbums(_) | FollowedArtists(_) | SavedShows(_) | Home(_) => {}
         IsLiked(a) | Like(a) | Unlike(a) => uris(&a.uris, true)?,
-        SaveAlbum(a) | UnsaveAlbum(a) | Album(a) | Artist(a) | Lyrics(a) | PlaylistDelete(a) => spotify_uri(&a.uri)?,
+        SaveAlbum(a) | UnsaveAlbum(a) | Album(a) | Artist(a) | Lyrics(a) | PlaylistDelete(a) | Radio(a) => spotify_uri(&a.uri)?,
         Playlist(a) | Show(a) => {
             spotify_uri(&a.uri)?;
             if a.limit.unwrap_or(0) > 1000 {

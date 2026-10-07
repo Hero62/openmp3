@@ -330,6 +330,9 @@ pub enum Command {
     Search(SearchArgs),
     #[serde(rename = "browse.recommendations")]
     Recommendations(UrisArg),
+    /// Radio playlist URI seeded by a track/artist/album/playlist ("Go to song radio").
+    #[serde(rename = "browse.radio")]
+    Radio(UriArg),
     #[serde(rename = "browse.lyrics")]
     Lyrics(UriArg),
 
@@ -488,7 +491,7 @@ pub const COMMAND_NAMES: &[&str] = &[
     "library.playlists", "library.liked", "library.albums", "library.artists", "library.shows",
     "library.isLiked", "library.like", "library.unlike", "library.saveAlbum", "library.unsaveAlbum",
     "browse.playlist", "browse.album", "browse.artist", "browse.show", "browse.home", "browse.search",
-    "browse.recommendations", "browse.lyrics",
+    "browse.recommendations", "browse.radio", "browse.lyrics",
     "playlist.create", "playlist.rename", "playlist.addTracks", "playlist.removeTracks",
     "playlist.moveTracks", "playlist.delete",
     "audio.subscribe", "eq.get", "eq.set", "eq.presets", "eq.applyPreset", "eq.savePreset", "eq.deletePreset",
@@ -530,7 +533,7 @@ mod tests {
                 assert_ne!(err.code, "unknown_command", "{name} not a Command variant");
             }
         }
-        assert_eq!(COMMAND_NAMES.len(), 71);
+        assert_eq!(COMMAND_NAMES.len(), 72);
     }
 
     #[test]
