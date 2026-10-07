@@ -1,6 +1,6 @@
 # HANDOFF — mp3palace
 
-_Version **1.0.0** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
+_Version **1.0.1** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
 
 mp3palace is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`.
 
@@ -98,6 +98,6 @@ How to measure: `powershell -ExecutionPolicy Bypass -File scripts/measure.ps1` g
 1. Do the "Needs you" checks above, especially playing audio with a device connected, which closes PLAN 4.4.
 2. If pathfinder hashes rotate, refresh them: see the hash refresh section of `docs/internal-endpoints.md`.
 3. **Optional extras:**
-  - an NSIS installer: `npx tauri build`; it downloads NSIS
+  - release builds: `npx tauri build` with `RUSTFLAGS` set to `--remap-path-prefix` your `.cargo`, `.rustup` and repo paths, so local usernames and paths don't get embedded in the exe
   - Kanji romanization with a dictionary crate
   - artist images for "Fans also like" from pathfinder

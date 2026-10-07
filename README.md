@@ -23,7 +23,7 @@
   <img alt="Platform: Windows 11" src="https://img.shields.io/badge/platform-Windows%2011-0078D4?style=flat-square">
   <img alt="Built with Tauri v2" src="https://img.shields.io/badge/Tauri-v2-24C8DB?style=flat-square">
   <img alt="Engine: Rust + librespot 0.8" src="https://img.shields.io/badge/engine-Rust%20%2B%20librespot%200.8-B7410E?style=flat-square">
-  <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-8b5cf6?style=flat-square">
+  <img alt="Version 1.0.1" src="https://img.shields.io/badge/version-1.0.1-8b5cf6?style=flat-square">
 </p>
 
 <p align="center">
@@ -80,9 +80,9 @@ All library, search, home and lyrics data comes from Spotify's **internal** endp
 
 ## Build and run
 
-There are no prebuilt downloads yet; build it from source.
+**Download:** grab the installer (`mp3palace_<version>_x64-setup.exe`) or the portable exe from the [latest release](https://github.com/Hero62/mp3palace/releases/latest). Builds are unsigned, so Windows SmartScreen may ask you to confirm (More info → Run anyway). Checksums are in `SHA256SUMS.txt`.
 
-**Requirements:** Windows 11 (WebView2 is preinstalled), [Rust](https://rustup.rs) (the repo pins the MSVC toolchain in `rust-toolchain.toml`), and the Visual Studio 2022 Build Tools with the C++ workload.
+**Build from source requirements:** Windows 11 (WebView2 is preinstalled), [Rust](https://rustup.rs) (the repo pins the MSVC toolchain in `rust-toolchain.toml`), and the Visual Studio 2022 Build Tools with the C++ workload.
 
 ```bash
 git clone https://github.com/Hero62/mp3palace.git
