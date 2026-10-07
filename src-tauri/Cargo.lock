@@ -2666,8 +2666,10 @@ name = "mp3palace"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "engine-api",
  "engine-audio",
  "engine-common",
+ "engine-queue",
  "engine-session",
  "env_logger",
  "log",

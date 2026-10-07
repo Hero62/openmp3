@@ -23,6 +23,7 @@ pub fn run_from_args() -> Option<i32> {
             rt.block_on(play_test(&uri, secs))
         }
         "--login" => rt.block_on(login_only()),
+        "--engine-test" => rt.block_on(engine_test()),
         _ => return None,
     };
     Some(match res {
@@ -72,7 +73,7 @@ async fn play_test(uri: &str, secs: u64) -> Result<()> {
     loop {
         tokio::select! {
             ev = events.recv() => match ev {
-                Some(PlayerEvent::Playing { position_ms, .. }) => eprintln!("[dev] event Playing at {position_ms} ms"),
+                Some(PlayerEvent::Playing { position_ms, .. }) => eprintln!("[dev] event Playing at {position_ms} ms (+{} ms since load)", started.elapsed().as_millis()),
                 Some(PlayerEvent::Loading { .. }) => eprintln!("[dev] event Loading"),
                 Some(PlayerEvent::Unavailable { .. }) => anyhow::bail!("track unavailable"),
                 Some(PlayerEvent::EndOfTrack { .. }) => { eprintln!("[dev] event EndOfTrack"); break; }
@@ -96,5 +97,107 @@ async fn play_test(uri: &str, secs: u64) -> Result<()> {
     if max_peak < 0.001 {
         anyhow::bail!("no audio reached the output");
     }
+    Ok(())
+}
+
+fn test_track(uri: &str) -> engine_api::models::Track {
+    engine_api::models::Track { uri: uri.into(), title: uri.rsplit(':').next().unwrap_or("").into(), ..Default::default() }
+}
+
+/// Exercises the playback controller end to end against the real account:
+/// gapless transition, crossfade transition, skip, prev and persistence.
+pub async fn engine_test() -> Result<()> {
+    use crate::playback::{self, Cmd, Event};
+    use engine_queue::{store::StateStore, ContextInfo};
+    use std::sync::Arc;
+
+    let paths = AppPaths::resolve();
+    let mgr = SessionManager::new(paths.clone(), Some(1024 * 1024 * 1024))?;
+    let session = connect(&mgr).await?;
+    let store = Arc::new(StateStore::open(&paths.cache.join("engine-test-state.sqlite"))?);
+    let audio = AudioEngine::new(AudioConfig::default())?;
+    let pb = playback::spawn(audio, store.clone());
+    let mut ev = pb.subscribe();
+    pb.send(Cmd::AttachSession(session));
+    pb.send(Cmd::SetVolume(0.6));
+
+    let tracks: Vec<_> = ["spotify:track:4cOdK2wGLETKBW3PvgPWqT", "spotify:track:0VjIjW4GlUZAMYd2vXMi3b", "spotify:track:7qiZfU4dY1lWllzX7mPBI3"]
+        .iter()
+        .map(|u| test_track(u))
+        .collect();
+    let t0 = Instant::now();
+    let log = |m: String| eprintln!("[test {:>6.2}s] {m}", t0.elapsed().as_secs_f32());
+
+    // Wait for an event matching `f`, up to `secs`.
+    async fn wait_for(
+        ev: &mut tokio::sync::broadcast::Receiver<Event>,
+        secs: u64,
+        mut f: impl FnMut(&Event) -> bool,
+    ) -> Result<Event> {
+        let dl = tokio::time::Instant::now() + Duration::from_secs(secs);
+        loop {
+            match tokio::time::timeout_at(dl, ev.recv()).await {
+                Ok(Ok(e)) if f(&e) => return Ok(e),
+                Ok(Ok(_)) | Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => {}
+                Ok(Err(e)) => anyhow::bail!("event channel: {e}"),
+                Err(_) => anyhow::bail!("timeout"),
+            }
+        }
+    }
+    let playing = |e: &Event| matches!(e, Event::PlayStateChanged(s) if s.playing && !s.loading);
+
+    // 1. gapless: crossfade off, seek near end, measure EndOfTrack -> next playing.
+    pb.send(Cmd::SetCrossfade(0));
+    pb.send(Cmd::PlayContext { info: ContextInfo { uri: "test:ctx".into(), name: "test".into() }, tracks: tracks.clone(), start: Some(0) });
+    wait_for(&mut ev, 15, playing).await?;
+    log(format!("playing {}", pb.state().track.unwrap().uri));
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let dur = pb.state().duration_ms;
+    anyhow::ensure!(dur > 60_000, "duration not learned ({dur})");
+    pb.send(Cmd::Seek(dur - 5_000));
+    log(format!("seek to {} of {dur}", dur - 5000));
+    let changed = wait_for(&mut ev, 15, |e| matches!(e, Event::TrackChanged(_))).await?;
+    let t_change = Instant::now();
+    if let Event::TrackChanged(s) = changed {
+        log(format!("gapless -> {}", s.track.unwrap().uri));
+    }
+    wait_for(&mut ev, 10, playing).await?;
+    let gap = t_change.elapsed();
+    log(format!("GAPLESS track-change -> playing: {} ms", gap.as_millis()));
+
+    // 2. crossfade 4 s.
+    pb.send(Cmd::SetCrossfade(4_000));
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let dur = pb.state().duration_ms;
+    pb.send(Cmd::Seek(dur - 7_000));
+    wait_for(&mut ev, 15, |e| matches!(e, Event::TrackChanged(_))).await?;
+    log(format!("crossfade started -> {}", pb.state().track.unwrap().uri));
+    wait_for(&mut ev, 10, playing).await?;
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    log("CROSSFADE ok".into());
+
+    // 3. prev + skip + queue
+    pb.send(Cmd::SetCrossfade(0));
+    pb.send(Cmd::AddToQueue(test_track("spotify:track:4cOdK2wGLETKBW3PvgPWqT")));
+    pb.send(Cmd::Next);
+    let e = wait_for(&mut ev, 10, |e| matches!(e, Event::TrackChanged(_))).await?;
+    if let Event::TrackChanged(s) = e {
+        anyhow::ensure!(s.track.unwrap().uri.ends_with("4cOdK2wGLETKBW3PvgPWqT"), "user queue did not play first");
+        log("SKIP to user-queued track ok".into());
+    }
+    wait_for(&mut ev, 10, playing).await?;
+    pb.send(Cmd::Prev);
+    let e = wait_for(&mut ev, 10, |e| matches!(e, Event::TrackChanged(_))).await?;
+    if let Event::TrackChanged(s) = e {
+        log(format!("PREV -> {}", s.track.unwrap().uri));
+    }
+    wait_for(&mut ev, 10, playing).await?;
+    pb.send(Cmd::Pause);
+    wait_for(&mut ev, 5, |e| matches!(e, Event::PlayStateChanged(s) if !s.playing)).await?;
+    log("PAUSE ok".into());
+    tokio::time::sleep(Duration::from_secs(3)).await; // let persistence tick
+    let q: Option<engine_queue::Queue> = store.load("queue");
+    anyhow::ensure!(q.map(|q| q.current.is_some()).unwrap_or(false), "queue not persisted");
+    log("PERSIST ok".into());
     Ok(())
 }

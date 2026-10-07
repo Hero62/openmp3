@@ -37,7 +37,12 @@ impl AtomicF32 {
 }
 
 pub struct DeckShared {
-    pub gain: AtomicF32,
+    /// Fade position 0..1 (written by the callback); gain = sin(p·π/2), so two
+    /// decks ramping in opposite directions at the same rate are equal-power.
+    pub fade_pos: AtomicF32,
+    pub fade_target: AtomicF32,
+    /// Change of `fade_pos` per frame (0 = jump immediately).
+    pub fade_step: AtomicF32,
     /// Set by the engine on load/seek; the callback drops buffered audio.
     pub flush: AtomicBool,
     /// Frames the callback has consumed from this deck (for position sync).
@@ -46,7 +51,11 @@ pub struct DeckShared {
 
 impl Default for DeckShared {
     fn default() -> Self {
-        Self { gain: AtomicF32::new(1.0), flush: AtomicBool::new(false), frames_played: AtomicU64::new(0) }
+        Self {
+            fade_pos: AtomicF32::new(1.0),
+            fade_target: AtomicF32::new(1.0),
+            fade_step: AtomicF32::new(0.0),
+            flush: AtomicBool::new(false), frames_played: AtomicU64::new(0) }
     }
 }
 
@@ -165,9 +174,28 @@ fn render(shared: &OutputShared, consumers: &mut [rtrb::Consumer<f32>], scratch:
         if got == 0 {
             continue;
         }
-        let g = deck.gain.get();
-        for (o, s) in out[..got].iter_mut().zip(&scratch[..got]) {
-            *o += s * g;
+        let target = deck.fade_target.get();
+        let mut p = deck.fade_pos.get();
+        let step = deck.fade_step.get();
+        if p == target {
+            let g = (p * std::f32::consts::FRAC_PI_2).sin();
+            for (o, s) in out[..got].iter_mut().zip(&scratch[..got]) {
+                *o += s * g;
+            }
+        } else {
+            for (o, s) in out[..got].chunks_exact_mut(CHANNELS).zip(scratch[..got].chunks_exact(CHANNELS)) {
+                if step <= 0.0 {
+                    p = target;
+                } else if p < target {
+                    p = (p + step).min(target);
+                } else {
+                    p = (p - step).max(target);
+                }
+                let g = (p * std::f32::consts::FRAC_PI_2).sin();
+                o[0] += s[0] * g;
+                o[1] += s[1] * g;
+            }
+            deck.fade_pos.set(p);
         }
         deck.frames_played.fetch_add((got / CHANNELS) as u64, Ordering::Relaxed);
     }

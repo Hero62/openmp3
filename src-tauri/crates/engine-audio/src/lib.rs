@@ -17,10 +17,10 @@ use librespot_core::{session::Session, SpotifyUri};
 use librespot_playback::{
     config::{Bitrate, NormalisationType, PlayerConfig},
     mixer::NoOpVolume,
-    player::{Player, PlayerEventChannel},
+    player::Player,
 };
 
-pub use librespot_playback::player::PlayerEvent;
+pub use librespot_playback::player::{PlayerEvent, PlayerEventChannel};
 pub use output::{OutputShared, NUM_DECKS, SAMPLE_RATE};
 
 /// ~186 ms of stereo audio per deck: small enough that skips feel instant,
@@ -127,7 +127,67 @@ impl AudioEngine {
         // to see it so it drops its in-flight packet instead of queuing it.
     }
 
+    /// `v` is the 0..1 slider position; mapped to a cubic amplitude curve
+    /// (≈ perceptually even steps, ~-60 dB at 10%).
     pub fn set_volume(&self, v: f32) {
-        self.shared.volume.set(v.clamp(0.0, 1.0));
+        let v = if v.is_finite() { v.clamp(0.0, 1.0) } else { 1.0 };
+        self.shared.volume.set(v * v * v);
+    }
+
+    /// Ramp a deck to fully in (`to_in = true`) or out over `ms` (equal-power).
+    pub fn fade(&self, deck: usize, to_in: bool, ms: u32) {
+        let d = &self.shared.decks[deck];
+        let frames = (SAMPLE_RATE as f32 * ms as f32 / 1000.0).max(1.0);
+        d.fade_step.set(if ms == 0 { 0.0 } else { 1.0 / frames });
+        d.fade_target.set(if to_in { 1.0 } else { 0.0 });
+    }
+
+    /// Set a deck fully in or out immediately.
+    pub fn set_deck_level(&self, deck: usize, on: bool) {
+        let d = &self.shared.decks[deck];
+        let v = if on { 1.0 } else { 0.0 };
+        d.fade_step.set(0.0);
+        d.fade_target.set(v);
+        d.fade_pos.set(v);
+    }
+
+    pub fn play(&self, deck: usize) {
+        if let Some(p) = self.player(deck) {
+            p.play();
+        }
+    }
+
+    pub fn pause(&self, deck: usize) {
+        if let Some(p) = self.player(deck) {
+            p.pause();
+        }
+    }
+
+    pub fn stop(&self, deck: usize) {
+        if let Some(p) = self.player(deck) {
+            self.flush(deck);
+            p.stop();
+        }
+    }
+
+    pub fn preload(&self, deck: usize, uri: &str) {
+        if let (Some(p), Ok(u)) = (self.player(deck), SpotifyUri::from_uri(uri)) {
+            p.preload(u);
+        }
+    }
+
+    pub fn set_eq(&self, eq: dsp::EqSettings) {
+        if let Ok(mut d) = self.shared.dsp.lock() {
+            d.set_eq(eq);
+        }
+    }
+
+    pub fn eq(&self) -> dsp::EqSettings {
+        self.shared.dsp.lock().map(|d| d.eq().clone()).unwrap_or_default()
+    }
+
+    /// Turn the theme analysis tap on/off (off when hidden or nobody listens).
+    pub fn set_analysis(&self, on: bool) {
+        self.shared.tap.set_enabled(on);
     }
 }

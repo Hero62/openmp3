@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod devtools;
+mod playback;
 mod theme_protocol;
 
 use tauri::Manager;

@@ -47,12 +47,12 @@ Tick a box only after it has been built **and verified** (how it was verified go
 - [ ] 2.5 SQLite cache (rusqlite, bundled): stale-while-revalidate, instant reads on launch.
 
 ## Stage 3 — playback core
-- [ ] 3.1 engine-queue: persistent queue (SQLite), play next / add to queue / move / remove, history, context.
-- [ ] 3.2 shuffle bag (no repeats until exhausted) + "spread out artists"; repeat off/all/one.
-- [ ] 3.3 gapless (preload on TimeToPreloadNextTrack) + crossfade (dual player mix) + normalization config.
-- [ ] 3.4 10-band biquad EQ with presets + user presets; analysis tap (RMS, realfft spectrum, beat detect), paused when hidden.
-- [ ] 3.5 audio file cache with size cap (librespot Cache with `audio_location` + size limit).
-- [ ] 3.6 unit tests for queue/shuffle/EQ.
+- [x] 3.1 engine-queue: persistent queue (SQLite), play next / add to queue / move / remove, history, context — unit tests + `--engine-test` (user queue plays first, survives new context, persisted).
+- [x] 3.2 shuffle bag (no repeats until exhausted) + "spread out artists"; repeat off/all/one — unit tests (uniformity, no-repeat bag, spread halves same-artist adjacency).
+- [x] 3.3 gapless (preload on TimeToPreloadNextTrack) + crossfade (dual player, equal-power ramps in the output callback) + normalization config — `--engine-test`: gapless change→playing 0 ms, 4 s crossfade hands over decks. (unverified by ear: crossfade smoothness; normalization is librespot's, enabled by default.)
+- [x] 3.4 10-band biquad EQ (RBJ, auto anti-clip preamp) with 11 presets + sanitizing; analysis (RMS, 2048-pt realfft → 64 log bins, beat detect) with lock-free tap that costs nothing when disabled — unit tests. User presets storage + 60 Hz transport land in 4.4.
+- [x] 3.5 audio file cache with size cap (librespot Cache, %LOCALAPPDATA%/mp3palace/audio, 1 GB default) — verified files written; cached start 430 ms vs 740 ms uncached (rest is per-play metadata + audio key round trips).
+- [x] 3.6 unit tests for queue/shuffle/EQ/analysis/cache — 21 tests passing.
 
 ## Stage 4 — theme system + bridge, Default theme
 - [ ] 4.1 engine-bridge: versioned whitelisted command/event API with schema validation; Tauri commands/events wired to host only.

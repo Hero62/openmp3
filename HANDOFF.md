@@ -6,6 +6,7 @@ _Last updated: 2026-10-07 by the build loop._
 - **Stage 0:** a private repo, the Tauri v2 workspace with the engine crates, and the host page with a sandboxed theme frame served on `theme://` under a strict CSP header. The window is shown only after the theme's hello message reaches the host (smoke log: `[host] ready via hello`).
 
 - **Stage 1:** Spotify OAuth login (cached creds), custom sink → cpal, `--play-test` played a track and the user heard it.
+- **Stage 3 (engine side):** queue/shuffle/repeat, gapless, crossfade, EQ, analysis, audio cache. Headless `mp3palace.exe --engine-test` exercises it against the real account.
 
 ## Not done yet
 Stages 2–8. See [PLAN.md](PLAN.md).

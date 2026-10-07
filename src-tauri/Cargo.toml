@@ -32,6 +32,8 @@ publish = false
 engine-common = { path = "crates/engine-common" }
 engine-session = { path = "crates/engine-session" }
 engine-audio = { path = "crates/engine-audio" }
+engine-api = { path = "crates/engine-api" }
+engine-queue = { path = "crates/engine-queue" }
 tokio.workspace = true
 anyhow.workspace = true
 env_logger = "0.11"
