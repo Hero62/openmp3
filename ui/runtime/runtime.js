@@ -1648,6 +1648,7 @@
       return;
     }
     applyLayout();
+    if (S.panel === "lyrics") loadLyrics();
     post({ ready: true, apiVersion: API_VERSION });
     refreshLiked();
   }

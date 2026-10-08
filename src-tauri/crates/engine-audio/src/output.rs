@@ -4,7 +4,9 @@
 //!
 //! librespot always decodes to 44.1 kHz stereo. cpal 0.18 opens WASAPI shared
 //! streams with AUTOCONVERTPCM, so we ask for exactly that and let Windows do
-//! any device-rate conversion.
+//! any device-rate conversion. CoreAudio has no such conversion: a device that
+//! can't run at 44.1 kHz (AirPods: 48 kHz, or 24/16 kHz mono while the mic is
+//! in use) is opened at its own rate and the mix is resampled in the callback.
 
 use std::sync::{
     atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
@@ -231,16 +233,39 @@ fn build_stream(shared: Arc<OutputShared>, consumers: Consumers, broken: Arc<Ato
         sample_rate: SAMPLE_RATE,
         buffer_size: cpal::BufferSize::Default,
     };
+    match open_stream(&device, config, None, shared.clone(), consumers.clone(), broken.clone()) {
+        Ok(s) => Ok(s),
+        Err(direct) => {
+            let def = device.default_output_config().map_err(|e| anyhow!("{direct}; default_output_config: {e}"))?;
+            let (rate, ch) = (def.sample_rate(), def.channels());
+            info!("audio output runs at {rate} Hz / {ch} ch ({direct}); resampling from {SAMPLE_RATE} Hz");
+            let config = cpal::StreamConfig { channels: ch, sample_rate: rate, buffer_size: cpal::BufferSize::Default };
+            open_stream(&device, config, Some(Resampler::new(rate, ch as usize)), shared, consumers, broken)
+        }
+    }
+}
 
+fn open_stream(
+    device: &cpal::Device,
+    config: cpal::StreamConfig,
+    mut conv: Option<Resampler>,
+    shared: Arc<OutputShared>,
+    consumers: Consumers,
+    broken: Arc<AtomicBool>,
+) -> Result<cpal::Stream> {
     let mut scratch: Vec<f32> = vec![0.0; 8192];
     let stream = device
         .build_output_stream::<f32, _, _>(
             config,
             move |out: &mut [f32], _info| {
                 // Only this callback locks the consumers while a stream exists.
-                match consumers.try_lock() {
-                    Ok(mut c) => render(&shared, &mut c, &mut scratch, out),
-                    Err(_) => out.fill(0.0),
+                let Ok(mut c) = consumers.try_lock() else {
+                    out.fill(0.0);
+                    return;
+                };
+                match conv.as_mut() {
+                    None => render(&shared, &mut c, &mut scratch, out),
+                    Some(r) => r.process(out, |buf| render(&shared, &mut c, &mut scratch, buf)),
                 }
             },
             move |e| {
@@ -252,6 +277,74 @@ fn build_stream(shared: Arc<OutputShared>, consumers: Consumers, broken: Arc<Ato
         .map_err(|e| anyhow!("build_output_stream: {e}"))?;
     stream.play().map_err(|e| anyhow!("stream play: {e}"))?;
     Ok(stream)
+}
+
+/// Converts the 44.1 kHz stereo mix to the device's rate and channel count
+/// (cubic Hermite interpolation). Everything upstream (DSP, meters, analysis
+/// tap, position counters) keeps running at `SAMPLE_RATE`.
+struct Resampler {
+    /// Source frames per device frame.
+    ratio: f64,
+    dev_ch: usize,
+    /// Interleaved stereo source frames; frame 0 is history for interpolation.
+    buf: Vec<f32>,
+    /// Position of the next device frame in `buf`, in frames (always >= 1).
+    pos: f64,
+    tmp: Vec<f32>,
+}
+
+impl Resampler {
+    fn new(dev_rate: u32, dev_ch: usize) -> Self {
+        let mut buf = Vec::with_capacity(32_768);
+        buf.extend_from_slice(&[0.0; CHANNELS]);
+        Self { ratio: SAMPLE_RATE as f64 / dev_rate as f64, dev_ch: dev_ch.max(1), buf, pos: 1.0, tmp: Vec::with_capacity(32_768) }
+    }
+
+    fn process(&mut self, out: &mut [f32], mut pull: impl FnMut(&mut [f32])) {
+        let n = out.len() / self.dev_ch;
+        if n == 0 {
+            out.fill(0.0);
+            return;
+        }
+        // Interpolating at t needs frames floor(t)-1 ..= floor(t)+2.
+        let last = (self.pos + (n - 1) as f64 * self.ratio).floor() as usize + 2;
+        let have = self.buf.len() / CHANNELS;
+        if last + 1 > have {
+            self.tmp.clear();
+            self.tmp.resize((last + 1 - have) * CHANNELS, 0.0);
+            pull(&mut self.tmp);
+            self.buf.extend_from_slice(&self.tmp);
+        }
+        let buf = &self.buf;
+        for (k, frame) in out.chunks_exact_mut(self.dev_ch).enumerate() {
+            let t = self.pos + k as f64 * self.ratio;
+            let i = t as usize;
+            let f = (t - i as f64) as f32;
+            let mut s = [0f32; CHANNELS];
+            for (c, v) in s.iter_mut().enumerate() {
+                let y = |j: usize| buf[j * CHANNELS + c];
+                *v = hermite(y(i - 1), y(i), y(i + 1), y(i + 2), f);
+            }
+            if self.dev_ch == 1 {
+                frame[0] = 0.5 * (s[0] + s[1]);
+            } else {
+                frame[..CHANNELS].copy_from_slice(&s);
+                frame[CHANNELS..].fill(0.0);
+            }
+        }
+        self.pos += n as f64 * self.ratio;
+        let drop = (self.pos as usize).saturating_sub(1);
+        self.buf.drain(..drop * CHANNELS);
+        self.pos -= drop as f64;
+    }
+}
+
+#[inline]
+fn hermite(y0: f32, y1: f32, y2: f32, y3: f32, t: f32) -> f32 {
+    let c1 = 0.5 * (y2 - y0);
+    let c2 = y0 - 2.5 * y1 + 2.0 * y2 - 0.5 * y3;
+    let c3 = 0.5 * (y3 - y0) + 1.5 * (y1 - y2);
+    ((c3 * t + c2) * t + c1) * t + y1
 }
 
 fn render(shared: &OutputShared, consumers: &mut [rtrb::Consumer<f32>], scratch: &mut Vec<f32>, out: &mut [f32]) {
@@ -318,3 +411,53 @@ fn render(shared: &OutputShared, consumers: &mut [rtrb::Consumer<f32>], scratch:
     shared.tap.push(out);
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A 1 kHz tone resampled 44.1 → 48 kHz keeps its frequency and level,
+    /// across many small callbacks.
+    #[test]
+    fn resampler_tone() {
+        let mut r = Resampler::new(48_000, 2);
+        let mut phase = 0usize;
+        let mut out_all = Vec::new();
+        for _ in 0..200 {
+            let mut out = vec![0f32; 2 * 441];
+            r.process(&mut out, |buf| {
+                for fr in buf.chunks_exact_mut(2) {
+                    let v = (phase as f32 * 2.0 * std::f32::consts::PI * 1000.0 / 44_100.0).sin();
+                    fr[0] = v;
+                    fr[1] = v;
+                    phase += 1;
+                }
+            });
+            out_all.extend(out.chunks_exact(2).map(|f| f[0]));
+        }
+        // Source consumed matches the rate ratio (plus a few frames of lookahead).
+        let expect = (out_all.len() as f64 * 44_100.0 / 48_000.0) as usize;
+        assert!(phase >= expect && phase <= expect + 4, "{phase} vs {expect}");
+        // Compare against the ideal 1 kHz tone at 48 kHz (skip the warm-up frames).
+        let mut err = 0f32;
+        for (k, v) in out_all.iter().enumerate().skip(8) {
+            let t = k as f64 * 44_100.0 / 48_000.0;
+            let ideal = (t as f32 * 2.0 * std::f32::consts::PI * 1000.0 / 44_100.0).sin();
+            err = err.max((v - ideal).abs());
+        }
+        assert!(err < 0.01, "max error {err}");
+    }
+
+    #[test]
+    fn resampler_mono_downmix() {
+        let mut r = Resampler::new(24_000, 1);
+        let mut out = vec![0f32; 256];
+        r.process(&mut out, |buf| {
+            for fr in buf.chunks_exact_mut(2) {
+                fr[0] = 0.5;
+                fr[1] = 0.1;
+            }
+        });
+        assert!((out[100] - 0.3).abs() < 1e-5);
+    }
+}

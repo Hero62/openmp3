@@ -8,7 +8,11 @@
 import { invoke, Channel } from "./vendor/tauri/core.js";
 import { listen } from "./vendor/tauri/event.js";
 
-const ORIGINS = ["http://theme.localhost", "http://themeb.localhost"];
+// WebView2 (Windows) serves custom schemes as http://<scheme>.localhost; WKWebView
+// (macOS) and WebKitGTK serve them as <scheme>://localhost.
+const ORIGINS = location.protocol === "tauri:"
+  ? ["theme://localhost", "themeb://localhost"]
+  : ["http://theme.localhost", "http://themeb.localhost"];
 let originIdx = 0;
 let frame = document.getElementById("theme");
 const MINI = new URLSearchParams(location.search).get("mini") === "1";

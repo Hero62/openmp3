@@ -95,9 +95,11 @@ input[type=range] { -webkit-appearance: none; appearance: none; background: tran
 input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--elevated); }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%; background: var(--text); opacity: 0; transition: opacity .15s; }
 input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit-slider-thumb { opacity: 1; }
-.mp3-progress { flex: 1; }
-.mp3-progress::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--text) calc(var(--progress, 0) * 100%), var(--elevated) 0); }
-.mp3-progress:hover::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent) calc(var(--progress, 0) * 100%), var(--elevated) 0); }
+/* The fill is painted on the input itself: WebKit (macOS) doesn't repaint the
+   track pseudo-element when --progress changes. */
+input[type=range].mp3-progress { flex: 1; --fill: var(--text); background: linear-gradient(to right, var(--fill) calc(var(--progress, 0) * 100%), var(--elevated) 0%) center / 100% 4px no-repeat; border-radius: 2px; }
+input[type=range].mp3-progress:hover { --fill: var(--accent); }
+.mp3-progress::-webkit-slider-runnable-track { background: transparent; }
 .mp3-volume { width: 96px; }
 
 /* right panel */
@@ -334,7 +336,7 @@ input[type=range]:hover::-webkit-slider-thumb, input[type=range]:active::-webkit
 .mp3-mini-title { font-weight: 700; }
 .mp3-mini-artist { font-size: .85em; color: var(--text-muted); }
 .mp3-mini-controls { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-.mp3-mini-progress { height: 3px; border-radius: 2px; margin-top: 6px; background: linear-gradient(to right, var(--accent) calc(var(--progress, 0) * 100%), var(--elevated) 0); }
+.mp3-mini-progress { height: 3px; border-radius: 2px; margin-top: 6px; background: linear-gradient(to right, var(--accent) calc(var(--progress, 0) * 100%), var(--elevated) 0%); }
 
 /* session status in the sidebar */
 .mp3-session-note { margin: 6px 12px; padding: 8px 10px; border-radius: 6px; background: var(--surface-2); color: var(--text-muted); font-size: .82em; text-align: left; }

@@ -7,9 +7,16 @@ use serde_json::Value;
 use crate::endpoints::gid_to_b62;
 use crate::models::*;
 
+/// Origin of the `img` custom protocol: WebView2 maps custom schemes to
+/// `http://<scheme>.localhost`, WKWebView/WebKitGTK use `<scheme>://localhost`.
+#[cfg(windows)]
+pub const IMG_ORIGIN: &str = "http://img.localhost";
+#[cfg(not(windows))]
+pub const IMG_ORIGIN: &str = "img://localhost";
+
 /// Local image-proxy URL for a Spotify image file id (hex).
 pub fn img_hex(hex: &str) -> String {
-    format!("http://img.localhost/i/{hex}")
+    format!("{IMG_ORIGIN}/i/{hex}")
 }
 
 /// Local image-proxy URL for any Spotify CDN URL. `i.scdn.co/image/<hex>`
@@ -28,7 +35,7 @@ pub fn img_url(url: &str) -> Option<String> {
     }
     let host = url.strip_prefix("https://")?.split('/').next()?;
     if host.ends_with(".scdn.co") || host.ends_with(".spotifycdn.com") {
-        return Some(format!("http://img.localhost/x/{}", base64_url_encode(url.as_bytes())));
+        return Some(format!("{IMG_ORIGIN}/x/{}", base64_url_encode(url.as_bytes())));
     }
     None
 }
@@ -403,8 +410,8 @@ mod tests {
 
     #[test]
     fn image_urls() {
-        assert_eq!(img_url("https://i.scdn.co/image/ab67616d0000b273abc").unwrap(), "http://img.localhost/i/ab67616d0000b273abc");
-        assert!(img_url("https://mosaic.scdn.co/640/abc").unwrap().starts_with("http://img.localhost/x/"));
+        assert_eq!(img_url("https://i.scdn.co/image/ab67616d0000b273abc").unwrap(), format!("{IMG_ORIGIN}/i/ab67616d0000b273abc"));
+        assert!(img_url("https://mosaic.scdn.co/640/abc").unwrap().starts_with(&format!("{IMG_ORIGIN}/x/")));
         assert!(img_url("https://evil.com/x.png").is_none());
         assert!(img_url("https://evil.com/.scdn.co/x").is_none());
     }
