@@ -81,7 +81,7 @@ All library, search, home and lyrics data comes from Spotify's **internal** endp
 
 ## Build and run
 
-**Download:** grab the `x64-setup.exe` installer or the `portable.exe` from the [latest release](https://github.com/Hero62/openmp3/releases/latest). Builds are unsigned, so Windows SmartScreen may ask you to confirm (More info → Run anyway). Checksums are in `SHA256SUMS.txt`.
+**Download:** grab the installer (`…_x64-setup.exe`, or `…_arm64-setup.exe` for Windows on ARM) or the matching `portable.exe` from the [latest release](https://github.com/Hero62/openmp3/releases/latest). Builds are unsigned, so Windows SmartScreen may ask you to confirm (More info → Run anyway). Checksums are in `SHA256SUMS.txt`.
 
 **Build from source requirements:** Windows 11 (WebView2 is preinstalled), [Rust](https://rustup.rs) (the repo pins the MSVC toolchain in `rust-toolchain.toml`), and the Visual Studio 2022 Build Tools with the C++ workload.
 
