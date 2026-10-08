@@ -1,8 +1,8 @@
 # HANDOFF — openmp3
 
-_Version **1.1.0** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
+_Version **1.1.1** · last updated: 2026-10-07. Requirements: [SPEC.md](SPEC.md). Itemized status with verification notes: [PLAN.md](PLAN.md)._
 
-openmp3 is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`. It was renamed from **mp3palace** after v1.0.1; `engine-common` moves the old `%APPDATA%`/`%LOCALAPPDATA%` `mp3palace` folders to `openmp3` on first start (`LEGACY_APP_DIR`).
+openmp3 is a lightweight Spotify replacement for Windows built on Tauri v2, WebView2, librespot 0.8, and Spotify's internal endpoints. The whole UI is a sandboxed, replaceable theme. The app name lives in `engine-common::APP_NAME`.
 
 ## Status
 **Stages 0–8 are done and verified.** One item is still open and blocked on you: **4.4**, the end-to-end check of live audio-analysis frames. It needs an audio output device to be connected. No device was available for the second half of the session.
@@ -68,6 +68,32 @@ How to measure: `powershell -ExecutionPolicy Bypass -File scripts/measure.ps1` g
 - **Orphan playlist:** one empty, invisible orphan playlist was created on the account by an early failed test.
 - **Default theme polish:** artist cards in "Fans also like" use initials, because related-artist images aren't in that endpoint.
 
+## Security model (pre-public review, 2026-10-07)
+- **Themes are untrusted:**
+  - sandboxed iframe with an opaque origin and a strict CSP
+  - WebRTC removed before theme code runs; DNS prefetch off
+  - commands are whitelisted and need the host token
+- **Privileged requests:** a non-Default theme gets a native confirm before it can:
+  - write theme files (`themes.save`)
+  - change global hotkeys
+  - turn on lyrics translation
+  - change the cache size
+
+  See `privileged_request` in `main.rs`.
+- **Hotkeys:** global hotkeys need Ctrl, Alt or Win. Only media keys and F13–F24 may be bare.
+- **`img://` proxy:**
+  - parses with the same URL rules as reqwest
+  - https only, on `*.scdn.co` / `*.spotifycdn.com`
+  - no redirects; 8 MB streaming cap; hashed cache names
+- **Theme import:**
+  - counts the actual bytes read (20 MB per file, 60 MB in total)
+  - rejects Windows device names
+  - live-link folder walks skip junctions and symlinks
+- **Release builds:** the dev CLI (`--play-test` etc.) is compiled out.
+- **Known/accepted:**
+  - the credentials file is plaintext (librespot), so other programs running as the user can read it
+  - the OAuth callback listener on 127.0.0.1:5588 can be raced by a local web page during login (only a DoS; PKCE protects the code)
+
 ## How to run / develop
 - Build:
   ```bash
@@ -78,7 +104,7 @@ How to measure: `powershell -ExecutionPolicy Bypass -File scripts/measure.ps1` g
   - `scripts/rebuild-run.sh` runs the debug build with CDP on port 9222. Debug builds read `themes/default` and `ui/runtime` from disk, so reload the frame instead of recompiling.
   - `node scripts/cdp.mjs shot out.png` takes a screenshot.
   - `node scripts/cdp.mjs eval "<js>" frame` runs JS in the theme, with the `mp3` SDK available.
-- **Headless checks:**
+- **Headless checks (debug builds only):**
   - `openmp3.exe --play-test [uri] [secs]`
   - `--engine-test`
   - `--api-probe`

@@ -34,7 +34,7 @@ pub async fn import(app: &AppHandle, state: &State) -> Result<Value, BridgeError
         let ok = confirm(
             app,
             "This theme contains a script",
-            "This theme includes script.js, which runs code inside the app's UI sandbox. It can't reach the internet, your files or your Spotify login, but it can control playback and read your library.\n\nOnly import themes from people you trust. Import anyway?",
+            "This theme includes script.js, which runs code inside the app's UI sandbox. The sandbox blocks network requests and access to your files and Spotify login, but the script can control playback and read your library.\n\nOnly import themes from people you trust. Import anyway?",
         )
         .await;
         if !ok {

@@ -11,6 +11,14 @@
  */
 (() => {
   "use strict";
+  // CSP can't stop WebRTC: ICE/STUN lookups would let a theme script leak
+  // data through DNS. Remove those APIs before any theme code runs. Frames and
+  // workers are blocked by CSP, so a theme can't get a fresh copy back.
+  for (const name of ["RTCPeerConnection", "webkitRTCPeerConnection", "RTCDataChannel", "RTCSessionDescription", "RTCIceCandidate"]) {
+    try {
+      Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false });
+    } catch {}
+  }
   const BOOT = JSON.parse(document.getElementById("mp3-boot").textContent);
   const API_VERSION = 1;
   const $ = (sel, root = document) => root.querySelector(sel);

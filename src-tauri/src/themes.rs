@@ -76,6 +76,9 @@ pub fn allowed_rel_path(rel: &str) -> bool {
     if rel.contains("..") || rel.starts_with('/') || rel.contains('\\') || rel.contains(':') || rel.len() > 160 {
         return false;
     }
+    if rel.split('/').any(is_reserved_windows_name) {
+        return false;
+    }
     match rel {
         "theme.json" | "layout.json" | "theme.css" | "script.js" | "README.md" => true,
         _ => {
@@ -92,6 +95,15 @@ pub fn allowed_rel_path(rel: &str) -> bool {
             false
         }
     }
+}
+
+/// `nul.png`, `com1.woff`, `con.html`... open devices instead of files on Windows.
+fn is_reserved_windows_name(seg: &str) -> bool {
+    let stem = seg.split('.').next().unwrap_or("").to_ascii_uppercase();
+    matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
+        || ((stem.starts_with("COM") || stem.starts_with("LPT"))
+            && stem.len() == 4
+            && stem.as_bytes()[3].is_ascii_digit())
 }
 
 pub fn mime_for(rel: &str) -> &'static str {
@@ -390,14 +402,16 @@ impl ThemeManager {
                 if !allowed_rel_path(rel) {
                     bail!("file not allowed in a theme: {rel}");
                 }
-                total += entry.size();
-                if total > MAX_THEME_BYTES * 3 {
-                    bail!("theme expands to more than 60 MB");
-                }
                 let dest = staging.join(rel);
                 std::fs::create_dir_all(dest.parent().unwrap())?;
-                let mut buf = Vec::with_capacity(entry.size() as usize);
-                entry.by_ref().take(MAX_THEME_BYTES).read_to_end(&mut buf)?;
+                // Counts the bytes actually read: the size in the zip header can lie.
+                let room = (MAX_THEME_BYTES * 3).saturating_sub(total);
+                let mut buf = Vec::with_capacity(entry.size().min(1 << 20) as usize);
+                entry.by_ref().take(MAX_THEME_BYTES.min(room) + 1).read_to_end(&mut buf)?;
+                total += buf.len() as u64;
+                if buf.len() as u64 > MAX_THEME_BYTES || total > MAX_THEME_BYTES * 3 {
+                    bail!("theme is too large (max 20 MB per file, 60 MB in total)");
+                }
                 std::fs::write(dest, buf)?;
             }
             // Validate in place using a temporary id.
@@ -451,7 +465,7 @@ impl ThemeManager {
                 if rel == "theme.json" {
                     let mut m: Value = serde_json::from_slice(&b)?;
                     m["name"] = json!(name.chars().take(60).collect::<String>());
-                    if m.get("author").and_then(|a| a.as_str()).map(|a| a == engine_common::APP_NAME || a == engine_common::LEGACY_APP_DIR).unwrap_or(false) {
+                    if m.get("author").and_then(|a| a.as_str()).map(|a| a == engine_common::APP_NAME).unwrap_or(false) {
                         m["author"] = json!("me");
                     }
                     b = serde_json::to_vec_pretty(&m)?;
@@ -604,6 +618,7 @@ impl ThemeManager {
         let script = if t.has_script { format!("<script src=\"/t/{}/script.js\"></script>", t.id) } else { String::new() };
         format!(
             "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\
+<meta http-equiv=\"x-dns-prefetch-control\" content=\"off\">\
 <link rel=\"stylesheet\" href=\"/rt/base.css\">{base_theme_css}\
 <style id=\"mp3-tokens\">{tokens}{faces}</style>{theme_css}\
 <script type=\"application/json\" id=\"mp3-boot\">{boot_json}</script>\
@@ -636,12 +651,28 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
     for e in rd.flatten() {
         let p = e.path();
-        if p.is_dir() {
+        let Ok(ft) = e.file_type() else { continue };
+        if ft.is_symlink() || is_reparse_point(&p) {
+            continue;
+        }
+        if ft.is_dir() {
             walk(root, &p, out);
         } else if let Ok(rel) = p.strip_prefix(root) {
             out.push(rel.to_string_lossy().replace('\\', "/"));
         }
     }
+}
+
+/// Junctions aren't reported as symlinks by `file_type()`; check the attribute.
+#[cfg(windows)]
+fn is_reparse_point(p: &Path) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    std::fs::symlink_metadata(p).map(|m| m.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0).unwrap_or(true)
+}
+#[cfg(not(windows))]
+fn is_reparse_point(_: &Path) -> bool {
+    false
 }
 
 #[allow(dead_code)]
@@ -652,7 +683,7 @@ mod tests {
     use super::*;
 
     fn tmp() -> PathBuf {
-        let d = std::env::temp_dir().join(format!("mp3p-themes-{}-{}", std::process::id(), fastrand_u()));
+        let d = std::env::temp_dir().join(format!("openmp3-themes-{}-{}", std::process::id(), fastrand_u()));
         let _ = std::fs::remove_dir_all(&d);
         d
     }
@@ -737,4 +768,15 @@ mod tests {
         assert_eq!(m.list().len(), 1, "nothing installed");
         let _ = std::fs::remove_dir_all(dir);
     }
+
+    #[test]
+    fn rejects_windows_device_names() {
+        for bad in ["assets/nul.png", "assets/COM1.woff", "components/con.html", "assets/x/aux.svg", "assets/lpt9.ttf"] {
+            assert!(!allowed_rel_path(bad), "{bad}");
+        }
+        for ok in ["assets/console.png", "assets/com10.png", "components/nullable.html", "assets/icons/lpt.svg"] {
+            assert!(allowed_rel_path(ok), "{ok}");
+        }
+    }
+
 }

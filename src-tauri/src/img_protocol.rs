@@ -18,6 +18,7 @@ static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 static CACHE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 const MAX_CACHE_BYTES: u64 = 300 * 1024 * 1024;
+const MAX_IMAGE_BYTES: usize = 8 * 1024 * 1024;
 
 pub fn init(cache_dir: PathBuf) {
     let _ = std::fs::create_dir_all(&cache_dir);
@@ -26,6 +27,8 @@ pub fn init(cache_dir: PathBuf) {
         reqwest::Client::builder()
             .user_agent(concat!("openmp3/", env!("CARGO_PKG_VERSION")))
             .timeout(std::time::Duration::from_secs(15))
+            // A redirect could leave the CDN allowlist; covers never redirect.
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .expect("http client"),
     );
@@ -92,19 +95,33 @@ pub fn resolve(path: &str) -> Option<(String, String)> {
         if enc.len() > 1024 {
             return None;
         }
-        let url = String::from_utf8(b64url_decode(enc)?).ok()?;
-        let rest = url.strip_prefix("https://")?;
-        let host = rest.split('/').next()?;
-        if host.contains('@') || host.contains(':') {
-            return None;
-        }
-        if !(host.ends_with(".scdn.co") || host.ends_with(".spotifycdn.com")) {
-            return None;
-        }
-        let name: String = enc.chars().filter(|c| c.is_ascii_alphanumeric()).take(120).collect();
-        return Some((format!("x_{name}"), url));
+        let raw = String::from_utf8(b64url_decode(enc)?).ok()?;
+        let url = allowed_cdn_url(&raw)?;
+        return Some((format!("x_{}", sha256_hex(url.as_bytes())), url));
     }
     None
+}
+
+/// Parses `raw` the same way the HTTP client will (WHATWG URL rules) and
+/// returns the normalized URL only if it is plain https on a Spotify CDN host.
+fn allowed_cdn_url(raw: &str) -> Option<String> {
+    let url = reqwest::Url::parse(raw).ok()?;
+    if url.scheme() != "https" || url.port().is_some() || !url.username().is_empty() || url.password().is_some() {
+        return None;
+    }
+    let host = match url.host()? {
+        url::Host::Domain(h) => h.to_ascii_lowercase(),
+        _ => return None,
+    };
+    let ok = ["scdn.co", "spotifycdn.com"]
+        .iter()
+        .any(|d| host.strip_suffix(d).map(|p| p.ends_with('.') && p.len() > 1).unwrap_or(false));
+    ok.then(|| url.to_string())
+}
+
+fn sha256_hex(b: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(b).iter().map(|x| format!("{x:02x}")).collect()
 }
 
 pub async fn fetch(path: &str) -> Option<Arc<Vec<u8>>> {
@@ -114,13 +131,17 @@ pub async fn fetch(path: &str) -> Option<Arc<Vec<u8>>> {
     if let Ok(b) = tokio::fs::read(&file).await {
         return Some(Arc::new(b));
     }
-    let resp = CLIENT.get()?.get(&url).send().await.ok()?;
-    if !resp.status().is_success() {
+    let mut resp = CLIENT.get()?.get(&url).send().await.ok()?;
+    if !resp.status().is_success() || resp.content_length().unwrap_or(0) > MAX_IMAGE_BYTES as u64 {
         return None;
     }
-    let bytes = resp.bytes().await.ok()?.to_vec();
-    if bytes.len() > 8 * 1024 * 1024 {
-        return None;
+    // Read with a running cap so an endless body can't exhaust memory.
+    let mut bytes = Vec::new();
+    while let Some(chunk) = resp.chunk().await.ok()? {
+        if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+            return None;
+        }
+        bytes.extend_from_slice(&chunk);
     }
     let _ = tokio::fs::write(&file, &bytes).await;
     Some(Arc::new(bytes))
@@ -145,7 +166,6 @@ pub fn handle(request: Request<Vec<u8>>, responder: tauri::UriSchemeResponder) {
             Some(b) => Response::builder()
                 .header("Content-Type", mime(&b))
                 .header("Cache-Control", "max-age=31536000, immutable")
-                .header("Access-Control-Allow-Origin", "*")
                 .header("X-Content-Type-Options", "nosniff")
                 .body(b.to_vec())
                 .unwrap(),
@@ -236,5 +256,22 @@ mod tests {
         assert!(resolve(&format!("/x/{}", enc("https://evil.com/a.png"))).is_none());
         assert!(resolve(&format!("/x/{}", enc("https://evil.com@x.scdn.co/a"))).is_none());
         assert!(resolve(&format!("/x/{}", enc("http://x.scdn.co/a"))).is_none());
+        // Host-confusion tricks: the client would connect to evil.tld.
+        for bad in [
+            "https://evil.tld\\x.scdn.co/a",
+            "https://evil.tld#.scdn.co",
+            "https://evil.tld?.scdn.co",
+            "https://evil.tld/.scdn.co",
+            "https://x.scdn.co:8443/a",
+            "https://192.168.1.1/x.scdn.co",
+            "https://scdn.co/a",
+            "https://evilscdn.co/a",
+        ] {
+            assert!(resolve(&format!("/x/{}", enc(bad))).is_none(), "{bad}");
+        }
+        // Cache names come from the full URL, so long URLs never collide.
+        let a = resolve(&format!("/x/{}", enc(&format!("https://mosaic.scdn.co/640/{}1", "a".repeat(200))))).unwrap();
+        let b = resolve(&format!("/x/{}", enc(&format!("https://mosaic.scdn.co/640/{}2", "a".repeat(200))))).unwrap();
+        assert_ne!(a.0, b.0);
     }
 }

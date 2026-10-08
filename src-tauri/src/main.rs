@@ -2,6 +2,7 @@
 
 mod app;
 mod connect;
+#[cfg(debug_assertions)]
 mod devtools;
 mod hotkeys;
 mod img_protocol;
@@ -34,6 +35,9 @@ static PROCESS_START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceL
 fn main() {
     let _ = PROCESS_START.set(std::time::Instant::now());
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info,librespot=info")).init();
+    // Headless dev commands exist only in debug builds (--import-theme skips
+    // the script consent dialog, --api-test --edit changes the library).
+    #[cfg(debug_assertions)]
     if let Some(code) = devtools::run_from_args() {
         std::process::exit(code);
     }
@@ -186,6 +190,17 @@ async fn bridge_call(
         return Err(engine_bridge::BridgeError::new("rate_limited", "too many commands"));
     }
     let command = engine_bridge::parse(&cmd, args)?;
+    let theme_id: String = theme_id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(64).collect();
+    if theme_id != themes::DEFAULT_ID {
+        if let Some(what) = privileged_request(&command) {
+            let msg = format!("The theme “{theme_id}” wants to {what}.
+
+Allow it? Choose No if you didn't just ask for this.");
+            if !theme_cmds::confirm(&app, "openmp3", &msg).await {
+                return Err(engine_bridge::BridgeError::new("forbidden", "not allowed by the user"));
+            }
+        }
+    }
     if command.needs_confirmation() {
         let what = match &command {
             engine_bridge::Command::ThemesDelete(a) => format!("Delete the theme “{}”?", a.id),
@@ -197,9 +212,33 @@ async fn bridge_call(
             return Err(engine_bridge::BridgeError::new("cancelled", "cancelled"));
         }
     }
-    let theme_id: String = theme_id.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(64).collect();
     let state: State = Arc::clone(&state);
     app::execute(&app, &state, &theme_id, command).await
+}
+
+/// Commands a third-party theme may only run with the user's explicit OK
+/// (the built-in Default theme is trusted). Returns what to ask about.
+/// These reach outside the theme itself: other themes' files (persisting code
+/// or rewriting a live-linked dev folder), system-wide hotkeys, sending lyrics
+/// to a translation service, and disk usage.
+fn privileged_request(command: &engine_bridge::Command) -> Option<String> {
+    use engine_bridge::Command as C;
+    match command {
+        C::ThemesSave(a) => Some(format!("change the files of the theme “{}”", a.id)),
+        C::SettingsSet(a) => {
+            let p = &a.patch;
+            if p.get("hotkeys").is_some() {
+                Some("change your global hotkeys (they work in every app)".into())
+            } else if p.pointer("/lyrics/translate").and_then(|v| v.as_bool()) == Some(true) {
+                Some("turn on lyrics translation (sends lyrics to an online translation service)".into())
+            } else if p.pointer("/audio/cacheSizeMb").is_some() {
+                Some("change the audio cache size".into())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
 }
 
 /// Host page asks which theme to load (and whether we fell back last time).
@@ -250,7 +289,10 @@ fn perf_report(state: tauri::State<'_, State>, sample: Value, token: String) {
     if !state.check_host_token(&token) {
         return;
     }
-    *state.perf.write().unwrap() = sample;
+    // Theme-supplied; keep it small (it's a handful of numbers).
+    if sample.is_object() && sample.to_string().len() <= 4096 {
+        *state.perf.write().unwrap() = sample;
+    }
 }
 
 #[tauri::command]

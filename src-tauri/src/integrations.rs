@@ -55,14 +55,24 @@ pub fn init(app: &AppHandle) {
     }
 }
 
-pub fn on_track(_app: &AppHandle, _state: &State, s: &PlaybackState) {
-    #[cfg(windows)]
-    win::update(s);
+pub fn on_track(app: &AppHandle, _state: &State, s: &PlaybackState) {
+    update_on_main_thread(app, s);
 }
 
-pub fn on_state(_app: &AppHandle, _state: &State, s: &PlaybackState) {
+pub fn on_state(app: &AppHandle, _state: &State, s: &PlaybackState) {
+    update_on_main_thread(app, s);
+}
+
+/// The taskbar's COM object is apartment-threaded and was created on the main
+/// thread, so it must only be called there (playback events arrive on tokio workers).
+fn update_on_main_thread(app: &AppHandle, s: &PlaybackState) {
     #[cfg(windows)]
-    win::update(s);
+    {
+        let s = s.clone();
+        let _ = app.run_on_main_thread(move || win::update(&s));
+    }
+    #[cfg(not(windows))]
+    let _ = (app, s);
 }
 
 // ------------------------------------------------------------------ tray
@@ -187,7 +197,8 @@ mod win {
         icons: [isize; 4], // prev, play, pause, next
         last: (String, bool),
     }
-    // COM objects are used from the threads that call update(); guarded by a Mutex.
+    // Created and used only on the main thread (see update_on_main_thread); the
+    // Mutex is just for the static.
     unsafe impl Send for Win {}
 
     static WIN: OnceLock<Mutex<Win>> = OnceLock::new();

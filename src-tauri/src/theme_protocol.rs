@@ -34,6 +34,7 @@ fn respond(status: u16, mime: &str, body: Vec<u8>) -> Response<Vec<u8>> {
         .header("X-Content-Type-Options", "nosniff")
         .header("Cache-Control", "no-store")
         .header("Referrer-Policy", "no-referrer")
+        .header("X-DNS-Prefetch-Control", "off")
         .body(body)
         .unwrap()
 }

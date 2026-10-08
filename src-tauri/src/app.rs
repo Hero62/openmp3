@@ -105,7 +105,9 @@ impl AppState {
     /// Called on every main-frame page load: the next host_init may claim a fresh token.
     pub fn reset_host_token(&self, window: &str) {
         let mut t = self.host_token.lock().unwrap();
-        t.insert(window.to_string(), (format!("{:016x}{:016x}", fastrand::u64(..), fastrand::u64(..)), false));
+        let mut b = [0u8; 16];
+        getrandom::fill(&mut b).expect("os rng");
+        t.insert(window.to_string(), (b.iter().map(|x| format!("{x:02x}")).collect(), false));
     }
 
     /// Hand out a window's token once per page load.

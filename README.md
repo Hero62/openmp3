@@ -23,7 +23,8 @@
   <img alt="Platform: Windows 11" src="https://img.shields.io/badge/platform-Windows%2011-0078D4?style=flat-square">
   <img alt="Built with Tauri v2" src="https://img.shields.io/badge/Tauri-v2-24C8DB?style=flat-square">
   <img alt="Engine: Rust + librespot 0.8" src="https://img.shields.io/badge/engine-Rust%20%2B%20librespot%200.8-B7410E?style=flat-square">
-  <img alt="Version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-8b5cf6?style=flat-square">
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square">
+  <img alt="Version 1.1.1" src="https://img.shields.io/badge/version-1.1.1-8b5cf6?style=flat-square">
 </p>
 
 <p align="center">
@@ -32,9 +33,6 @@
 
 > [!IMPORTANT]
 > This is a **personal-use** project. It needs a **Spotify Premium** account; librespot quits on Free accounts. It is not affiliated with or endorsed by Spotify.
-
-> [!NOTE]
-> openmp3 was called **mp3palace** up to v1.0.1. On first start it moves your old `%APPDATA%\mp3palace` and `%LOCALAPPDATA%\mp3palace` folders to `openmp3`, so your login, settings, queue and themes carry over, and deletes the old WebView2 cache. If you installed mp3palace with its installer, uninstall it from Windows Settings afterwards.
 
 ## Why
 
@@ -105,7 +103,7 @@ node scripts/cdp.mjs eval "mp3.nowPlaying" frame   # run JS inside the theme san
 cd src-tauri && cargo test --workspace      # unit tests
 ```
 
-Debug builds read `themes/default/` and `ui/runtime/` from disk, so reloading the frame picks up UI changes without recompiling. Headless checks: `openmp3.exe --play-test`, `--engine-test`, `--api-probe`, `--api-test`. `scripts/measure.ps1 -Mode idle|playing|tray` reproduces the numbers above.
+Debug builds read `themes/default/` and `ui/runtime/` from disk, so reloading the frame picks up UI changes without recompiling. Headless checks (debug builds only): `openmp3.exe --play-test`, `--engine-test`, `--api-probe`, `--api-test`. `scripts/measure.ps1 -Mode idle|playing|tray` reproduces the numbers above.
 
 </details>
 
@@ -125,7 +123,7 @@ A `.theme` file is a zip with up to four layers:
 The Themes page imports `.theme` files, and can apply, duplicate, export or edit them. It can also live-link a folder that hot-reloads on every save, copy the full [theme guide](THEME_GUIDE.md) (handy for pasting into an AI agent), and show a performance meter. The [`examples/visualizer`](examples/visualizer) theme (`examples/Spectrum.theme`) uses all four layers.
 
 > [!NOTE]
-> Themes are sandboxed and can't reach the network, your files, Tauri APIs or your Spotify credentials. Every command is checked against a whitelist twice: by the host page, then by the Rust bridge. A frozen or crashing theme is replaced with Default automatically, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> always resets to Default.
+> Themes are sandboxed and can't reach the network, your files, Tauri APIs or your Spotify credentials. Every command is checked against a whitelist twice: by the host page, then by the Rust bridge. Windows asks for your OK before a third-party theme can edit theme files, change global hotkeys, turn on lyrics translation or change the cache size. A frozen or crashing theme is replaced with Default automatically, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> always resets to Default.
 
 ## How it works
 
@@ -157,6 +155,7 @@ The engine is a Cargo workspace in [`src-tauri/crates`](src-tauri/crates). Requi
 
 - Premium accounts only (a librespot restriction).
 - Search, the home feed and parts of artist pages use Spotify GraphQL query hashes that change occasionally; they're kept in one table in [`endpoints.rs`](src-tauri/crates/engine-api/src/endpoints.rs).
+- Spotify's reusable login token is stored unencrypted in `%APPDATA%\openmp3\credentials` (librespot's format). Any program running under your Windows account can read it.
 - Japanese kanji and Chinese characters aren't romanized (that needs a dictionary).
 - No lossless, offline downloads, Jam, DJ, video podcasts or Canvas. These are out of scope for v1.
 
@@ -164,4 +163,4 @@ The engine is a Cargo workspace in [`src-tauri/crates`](src-tauri/crates). Requi
 
 Built on [librespot](https://github.com/librespot-org/librespot) for Spotify playback and the Connect protocol, [Tauri](https://tauri.app) for the shell, and [cpal](https://github.com/RustAudio/cpal) for audio output. Endpoint research drew on [go-librespot](https://github.com/devgianlu/go-librespot) and Spotify's web player.
 
-No license has been chosen yet; until one is added, all rights are reserved. Spotify is a trademark of Spotify AB.
+Released under the [MIT License](LICENSE). Spotify is a trademark of Spotify AB.

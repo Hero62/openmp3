@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 use log::{info, warn};
 use tauri::AppHandle;
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 use crate::{integrations, playback::Cmd, settings::Hotkeys};
 
@@ -36,12 +36,57 @@ fn run(app: &AppHandle, a: Action) {
 }
 
 /// Parse "Ctrl+Alt+Space" style strings (the plugin's own format).
+/// Global hotkeys swallow the key in every app, so a shortcut must include
+/// Ctrl, Alt or Win; only media keys and F13–F24 may stand alone. This stops
+/// a theme from grabbing plain typing keys (Shift+letter included).
 pub fn parse(s: &str) -> Option<Shortcut> {
     let s = s.trim();
-    if s.is_empty() {
+    if s.is_empty() || s.len() > 64 {
         return None;
     }
-    s.parse::<Shortcut>().ok()
+    let sc = s.parse::<Shortcut>().ok()?;
+    let strong = Modifiers::CONTROL | Modifiers::ALT | Modifiers::SUPER | Modifiers::META;
+    (sc.mods.intersects(strong) || standalone_ok(sc.key)).then_some(sc)
+}
+
+fn standalone_ok(key: Code) -> bool {
+    matches!(
+        key,
+        Code::MediaPlayPause
+            | Code::MediaStop
+            | Code::MediaTrackNext
+            | Code::MediaTrackPrevious
+            | Code::AudioVolumeUp
+            | Code::AudioVolumeDown
+            | Code::AudioVolumeMute
+            | Code::F13
+            | Code::F14
+            | Code::F15
+            | Code::F16
+            | Code::F17
+            | Code::F18
+            | Code::F19
+            | Code::F20
+            | Code::F21
+            | Code::F22
+            | Code::F23
+            | Code::F24
+    )
+}
+
+#[cfg(test)]
+mod modifier_tests {
+    use super::parse;
+
+    #[test]
+    fn requires_a_real_modifier() {
+        for ok in ["Ctrl+Alt+Home", "Ctrl+Alt+Right", "Alt+KeyL", "Super+KeyP", "MediaPlayPause", "F13"] {
+            assert!(parse(ok).is_some(), "{ok}");
+        }
+        for bad in ["KeyA", "Shift+KeyA", "Space", "Enter", "Digit1", "F5", "", "nonsense"] {
+            assert!(parse(bad).is_none(), "{bad}");
+        }
+    }
 }
 
 pub fn register(app: &AppHandle, h: &Hotkeys) {
