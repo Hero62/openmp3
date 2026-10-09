@@ -1228,7 +1228,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
 name = "engine-api"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1251,7 +1251,7 @@ dependencies = [
 
 [[package]]
 name = "engine-audio"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "cpal",
@@ -1268,7 +1268,7 @@ dependencies = [
 
 [[package]]
 name = "engine-bridge"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -1276,14 +1276,14 @@ dependencies = [
 
 [[package]]
 name = "engine-common"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "engine-connect"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "librespot-connect",
@@ -1293,7 +1293,7 @@ dependencies = [
 
 [[package]]
 name = "engine-queue"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "engine-api",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "engine-session"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "engine-common",
@@ -3667,7 +3667,7 @@ dependencies = [
 
 [[package]]
 name = "openmp3"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "engine-api",

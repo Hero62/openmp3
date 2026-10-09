@@ -2,7 +2,7 @@
   "name": "openmp3",
   "private": true,
   "license": "MIT",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "scripts": {
     "tauri": "tauri"
   },

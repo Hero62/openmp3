@@ -24,7 +24,7 @@
   <img alt="Built with Tauri v2" src="https://img.shields.io/badge/Tauri-v2-24C8DB?style=flat-square">
   <img alt="Engine: Rust + librespot 0.8" src="https://img.shields.io/badge/engine-Rust%20%2B%20librespot%200.8-B7410E?style=flat-square">
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square">
-  <img alt="Version 1.1.1" src="https://img.shields.io/badge/version-1.1.1-8b5cf6?style=flat-square">
+  <img alt="Version 1.1.2" src="https://img.shields.io/badge/version-1.1.2-8b5cf6?style=flat-square">
 </p>
 
 <p align="center">
