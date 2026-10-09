@@ -781,7 +781,7 @@ fn track_from_audio_item(a: &engine_audio::librespot_playback_metadata::AudioIte
         .collect();
     let (artists, album) = match &a.unique_fields {
         UniqueFields::Track { artists, album, .. } => (
-            artists.iter().map(|x| ArtistRef { uri: x.id.to_uri().unwrap_or_default(), name: x.name.clone() }).collect(),
+            artists.iter().map(|x| ArtistRef { uri: x.id.to_uri(), name: x.name.clone() }).collect(),
             album.clone(),
         ),
         UniqueFields::Episode { show_name, .. } => (vec![ArtistRef { uri: String::new(), name: show_name.clone() }], show_name.clone()),

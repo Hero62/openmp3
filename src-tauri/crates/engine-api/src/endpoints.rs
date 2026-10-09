@@ -62,7 +62,7 @@ fn json_headers() -> HeaderMap {
 
 /// 16-byte gid → base62 id.
 pub fn gid_to_b62(gid: &[u8]) -> Option<String> {
-    SpotifyId::from_raw(gid).ok()?.to_base62().ok()
+    Some(SpotifyId::from_raw(gid).ok()?.to_base62())
 }
 
 pub fn uri_b62(uri: &str) -> Result<String> {
