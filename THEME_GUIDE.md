@@ -240,7 +240,7 @@ Scripts can add more with `mp3.ui.registerFilter`.
 
 - **Track:** `uri, title, artists[] {uri, name}, album {uri, name, images[]}, durationMs, explicit, playable, trackNumber, discNumber, addedAt?, show?`
 - **Image:** `{url, width?, height?}`. The URL is always local (`http://img.localhost/...`).
-- **PlaybackState:** `track, playing, loading, positionMs, positionAt (unix ms when sampled), durationMs, volume (0–1), shuffle ("off"|"on"|"spread"), repeat ("off"|"all"|"one"), crossfadeMs, context {uri, name}, accent ("#rrggbb"|null), remote (Spotify Connect active)`
+- **PlaybackState:** `track, playing, loading, positionMs, positionAt (unix ms when sampled), durationMs, volume (0–1), shuffle ("off"|"on"|"spread"), repeat ("off"|"all"|"one"), crossfadeMs, context {uri, name}, accent ("#rrggbb"|null), palette (the cover's main colors, most prominent first: up to 5 "#rrggbb", [] until known), remote (Spotify Connect active)`
 - **QueueView:** `current, userQueue[] Entry, upNext[] Entry, context, shuffle, repeat`
 - **PlaylistSummary:** `uri, name, owner, images, trackCount, collaborative, ownedByMe`
 
@@ -314,7 +314,7 @@ mp3.player.setRepeat("off" | "all" | "one")
 mp3.player.state()                          // → PlaybackState
 
 // Now playing (synchronous snapshot, position interpolated)
-mp3.nowPlaying  // { track, title, artists, album, coverUrl, accent, playing, positionMs, durationMs, volume, shuffle, repeat }
+mp3.nowPlaying  // { track, title, artists, album, coverUrl, accent, palette, playing, positionMs, durationMs, volume, shuffle, repeat }
 
 // Library & browse
 mp3.library.playlists(); mp3.library.liked(); mp3.library.albums(); mp3.library.artists(); mp3.library.shows()

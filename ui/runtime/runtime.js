@@ -1444,7 +1444,8 @@
   on("navigate", (r) => r && r.view === "themes" && startSampling());
   on("playStateChanged", (st) => {
     const accent = S.playback && S.playback.accent;
-    S.playback = Object.assign({ accent }, st, st.accent ? { accent: st.accent } : {});
+    const palette = S.playback && S.playback.palette;
+    S.playback = Object.assign({ accent, palette }, st, st.accent ? { accent: st.accent } : {}, st.palette && st.palette.length ? { palette: st.palette } : {});
     renderRegion("player");
   });
   on("progress", (p) => {
@@ -1521,6 +1522,7 @@
         album: t ? t.album : null,
         coverUrl: t ? pickImage(t.album && t.album.images, 640) : "",
         accent: p.accent || null,
+        palette: Array.isArray(p.palette) ? p.palette.slice() : [],
         playing: !!p.playing,
         positionMs: positionNow(),
         durationMs: p.durationMs || 0,

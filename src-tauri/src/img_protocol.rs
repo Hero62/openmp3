@@ -5,7 +5,8 @@
 //! * `/i/<hex>`        → https://i.scdn.co/image/<hex>
 //! * `/x/<base64url>`  → any https URL on *.scdn.co / *.spotifycdn.com
 //!
-//! Also computes an accent color per cover for `accentFromCover` themes.
+//! Also computes, per cover, an accent color (for `accentFromCover` themes) and a
+//! palette of its main colors (for themes that want the real cover colors).
 
 use std::{
     path::{Path, PathBuf},
@@ -175,23 +176,107 @@ pub fn handle(request: Request<Vec<u8>>, responder: tauri::UriSchemeResponder) {
     });
 }
 
-/// Accent color (#rrggbb) for a local proxy URL like `http://img.localhost/i/<hex>`.
-/// Picks the most common vivid hue, then nudges lightness so it reads on dark UIs.
-pub async fn accent(local_url: &str) -> Option<String> {
-    let path = local_url.strip_prefix("http://img.localhost").or_else(|| local_url.strip_prefix("img://localhost"))?;
-    let bytes = fetch(path).await?;
-    tokio::task::spawn_blocking(move || accent_from_jpeg(&bytes)).await.ok()?
+/// Colors of a cover: the accent (`#rrggbb`) and a palette of up to 5 main colors.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CoverColors {
+    pub accent: Option<String>,
+    pub palette: Vec<String>,
 }
 
-pub fn accent_from_jpeg(bytes: &[u8]) -> Option<String> {
+/// Cover colors for a local proxy URL like `http://img.localhost/i/<hex>`.
+pub async fn cover_colors(local_url: &str) -> CoverColors {
+    let Some(path) = local_url.strip_prefix("http://img.localhost").or_else(|| local_url.strip_prefix("img://localhost")) else {
+        return CoverColors::default();
+    };
+    let Some(bytes) = fetch(path).await else { return CoverColors::default() };
+    tokio::task::spawn_blocking(move || {
+        let Some((px, w, h)) = decode_rgb(&bytes) else { return CoverColors::default() };
+        CoverColors { accent: accent_from_rgb(&px, w, h), palette: palette_from_rgb(&px, w, h, 5) }
+    })
+    .await
+    .unwrap_or_default()
+}
+
+fn decode_rgb(bytes: &[u8]) -> Option<(Vec<u8>, usize, usize)> {
     use zune_jpeg::zune_core::{bytestream::ZCursor, colorspace::ColorSpace, options::DecoderOptions};
     let opts = DecoderOptions::default().jpeg_set_out_colorspace(ColorSpace::RGB);
     let mut dec = zune_jpeg::JpegDecoder::new_with_options(ZCursor::new(bytes), opts);
     let px = dec.decode().ok()?;
     let (w, h) = dec.dimensions()?;
-    if w == 0 || h == 0 || px.len() < w * h * 3 {
-        return None;
+    (w > 0 && h > 0 && px.len() >= w * h * 3).then_some((px, w, h))
+}
+
+/// The cover's main colors, most prominent first (`#rrggbb`, at most `max`).
+/// Box splitting (median-cut style) over a ~4k pixel sample, then near-duplicates are merged, so a
+/// two-tone cover gives two colors and a black-and-white one gives grays.
+pub fn palette_from_rgb(px: &[u8], w: usize, h: usize, max: usize) -> Vec<String> {
+    let step = ((w * h) / 4096).max(1);
+    let mut pts: Vec<[u8; 3]> = (0..w * h).step_by(step).map(|i| [px[i * 3], px[i * 3 + 1], px[i * 3 + 2]]).collect();
+    if pts.is_empty() {
+        return Vec::new();
     }
+    // Split the box with the widest channel range (weighted by size) at its median.
+    let mut boxes: Vec<(usize, usize)> = vec![(0, pts.len())];
+    let range = |p: &[[u8; 3]]| -> (usize, u8) {
+        (0..3)
+            .map(|c| {
+                let (lo, hi) = p.iter().fold((255u8, 0u8), |(lo, hi), x| (lo.min(x[c]), hi.max(x[c])));
+                (c, hi - lo)
+            })
+            .max_by_key(|&(_, r)| r)
+            .unwrap()
+    };
+    while boxes.len() < 8 {
+        let (bi, &(s, e)) = boxes
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, &(s, e))| range(&pts[s..e]).1 as usize * (e - s))
+            .unwrap();
+        if e - s < 2 || range(&pts[s..e]).1 < 8 {
+            break;
+        }
+        let (c, _) = range(&pts[s..e]);
+        pts[s..e].sort_unstable_by_key(|x| x[c]);
+        // Cut at the middle of the value range, not the median: a median cut can land
+        // inside one color and average two distinct colors into a muddy one.
+        let mid = (pts[s][c] as u16 + pts[e - 1][c] as u16) / 2;
+        let m = s + pts[s..e].partition_point(|x| (x[c] as u16) <= mid).clamp(1, e - s - 1);
+        boxes[bi] = (s, m);
+        boxes.push((m, e));
+    }
+    // Average each box, merge colors that look the same, keep the biggest.
+    let mut cols: Vec<([f64; 3], usize)> = boxes
+        .iter()
+        .map(|&(s, e)| {
+            let n = (e - s) as f64;
+            let sum = pts[s..e].iter().fold([0f64; 3], |a, x| [a[0] + x[0] as f64, a[1] + x[1] as f64, a[2] + x[2] as f64]);
+            ([sum[0] / n, sum[1] / n, sum[2] / n], e - s)
+        })
+        .collect();
+    cols.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut out: Vec<([f64; 3], usize)> = Vec::new();
+    for (c, n) in cols {
+        let close = out.iter_mut().find(|(o, _)| ((o[0] - c[0]).powi(2) + (o[1] - c[1]).powi(2) + (o[2] - c[2]).powi(2)).sqrt() < 28.0);
+        match close {
+            Some((o, on)) => {
+                let t = n as f64 / (*on + n) as f64;
+                for k in 0..3 {
+                    o[k] += (c[k] - o[k]) * t;
+                }
+                *on += n;
+            }
+            None => out.push((c, n)),
+        }
+    }
+    out.sort_by(|a, b| b.1.cmp(&a.1));
+    out.iter()
+        .take(max)
+        .map(|(c, _)| format!("#{:02x}{:02x}{:02x}", c[0].round() as u8, c[1].round() as u8, c[2].round() as u8))
+        .collect()
+}
+
+/// Picks the most common vivid hue, then nudges lightness so it reads on dark UIs.
+pub fn accent_from_rgb(px: &[u8], w: usize, h: usize) -> Option<String> {
     // 24 hue buckets weighted by saturation * value.
     let mut buckets = [(0f64, 0f64, 0f64, 0f64); 24];
     let step = ((w * h) / 4096).max(1);
@@ -234,6 +319,32 @@ pub fn accent_from_jpeg(bytes: &[u8]) -> Option<String> {
 mod tests {
     use super::*;
 
+    fn solid(cols: &[([u8; 3], usize)]) -> (Vec<u8>, usize, usize) {
+        let mut px = Vec::new();
+        for (c, n) in cols {
+            for _ in 0..*n {
+                px.extend_from_slice(c);
+            }
+        }
+        let w = px.len() / 3;
+        (px, w, 1)
+    }
+
+    #[test]
+    fn palette_follows_the_cover() {
+        // Mostly dark navy with an orange accent: navy first, orange second.
+        let (px, w, h) = solid(&[([20, 24, 60], 7000), ([240, 120, 30], 3000)]);
+        assert_eq!(palette_from_rgb(&px, w, h, 5), vec!["#14183c", "#f0781e"]);
+        // Black and white stays black and white (no invented hue).
+        let (px, w, h) = solid(&[([0, 0, 0], 5000), ([250, 250, 250], 5000)]);
+        let p = palette_from_rgb(&px, w, h, 5);
+        assert_eq!(p.len(), 2);
+        assert!(p.iter().all(|c| c[1..3] == c[3..5] && c[3..5] == c[5..7]), "{p:?}");
+        // Near-identical shades merge into one color.
+        let (px, w, h) = solid(&[([200, 30, 30], 5000), ([205, 34, 28], 5000)]);
+        assert_eq!(palette_from_rgb(&px, w, h, 5).len(), 1);
+    }
+
     #[test]
     fn resolves_only_spotify_cdns() {
         assert!(resolve("/i/ab67616d0000b273").is_some());
@@ -274,4 +385,18 @@ mod tests {
         let b = resolve(&format!("/x/{}", enc(&format!("https://mosaic.scdn.co/640/{}2", "a".repeat(200))))).unwrap();
         assert_ne!(a.0, b.0);
     }
+
+    /// Prints palettes for real covers: `PALETTE_DIR=<dir> cargo test palette_dump -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn palette_dump() {
+        let dir = std::env::var("PALETTE_DIR").expect("PALETTE_DIR");
+        for e in std::fs::read_dir(dir).unwrap().flatten().take(24) {
+            let b = std::fs::read(e.path()).unwrap();
+            if let Some((px, w, h)) = decode_rgb(&b) {
+                println!("PAL {} {} {}", e.path().display(), accent_from_rgb(&px, w, h).unwrap_or_default(), palette_from_rgb(&px, w, h, 5).join(","));
+            }
+        }
+    }
+
 }

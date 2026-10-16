@@ -39,6 +39,7 @@ pub struct AppState {
     pub themes: ThemeManager,
     pub session_state: RwLock<Value>,
     pub accent: RwLock<Option<String>>,
+    pub palette: RwLock<Vec<String>>,
     pub audio_subscribed: AtomicBool,
     pub audio_shared: OnceCell<Arc<engine_audio::OutputShared>>,
     pub fallback_reason: RwLock<Option<String>>,
@@ -73,6 +74,7 @@ impl AppState {
             themes,
             session_state: RwLock::new(json!({ "state": "connecting" })),
             accent: RwLock::new(None),
+            palette: RwLock::new(Vec::new()),
             audio_subscribed: AtomicBool::new(false),
             audio_shared: OnceCell::new(),
             fallback_reason: RwLock::new(None),
@@ -213,6 +215,7 @@ fn eq_user_presets(state: &State) -> BTreeMap<String, [f32; 10]> {
 fn playback_state_json(state: &State, s: playback::PlaybackState) -> Value {
     let mut v = serde_json::to_value(&s).unwrap_or_default();
     v["accent"] = json!(state.accent.read().unwrap().clone());
+    v["palette"] = json!(state.palette.read().unwrap().clone());
     v
 }
 
@@ -743,8 +746,9 @@ pub fn start_event_forwarder(app: AppHandle, state: State) {
                         let app2 = app.clone();
                         let st = state.clone();
                         tauri::async_runtime::spawn(async move {
-                            let accent = crate::img_protocol::accent(&c).await;
-                            *st.accent.write().unwrap() = accent;
+                            let colors = crate::img_protocol::cover_colors(&c).await;
+                            *st.accent.write().unwrap() = colors.accent;
+                            *st.palette.write().unwrap() = colors.palette;
                             let cur = st.pb_wait().await.state();
                             emit(&app2, "trackChanged", playback_state_json(&st, cur));
                         });
