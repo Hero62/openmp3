@@ -74,7 +74,7 @@ The official desktop app is a full Chromium bundle that idles at hundreds of meg
 | Gapless and dual-deck crossfade | Liked Songs, saved albums, followed artists | Taskbar thumbnail buttons |
 | Persistent queue (survives restarts and new contexts) | Search, home feed, artist and album pages | Tray icon, close to tray, mini player |
 | True shuffle bag plus "spread out artists" | Song radio, recommendations, autoplay | Configurable global hotkeys |
-| 10-band EQ, volume normalization | Synced lyrics (LRCLIB fallback), local romanization | Spotify Connect: control it from your phone |
+| 10-band EQ, volume normalization | Synced lyrics (LRCLIB and Genius fallbacks), local romanization | Spotify Connect: control it from your phone |
 | Recently played songs start from the local cache | Podcasts (audio), customizable Home | Single instance; never adds itself to startup |
 
 All library, search, home and lyrics data comes from Spotify's **internal** endpoints through the librespot session. No developer app, client ID or Web API key is involved. The endpoint code is isolated in [`engine-api/src/endpoints.rs`](src-tauri/crates/engine-api/src/endpoints.rs), so breakages are a one-file fix ([reference](docs/internal-endpoints.md)).

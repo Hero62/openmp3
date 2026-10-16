@@ -60,6 +60,8 @@ pub struct HomeSettings {
 pub struct LyricsSettings {
     pub enabled: bool,
     pub lrclib_fallback: bool,
+    /// Genius as a last resort (plain lyrics, read from its song pages).
+    pub genius_fallback: bool,
     pub romanize: bool,
     /// Translation via an online service; off by default.
     pub translate: bool,
@@ -126,7 +128,7 @@ impl Default for HomeSettings {
 
 impl Default for LyricsSettings {
     fn default() -> Self {
-        Self { enabled: true, lrclib_fallback: true, romanize: false, translate: false, translate_to: "en".into() }
+        Self { enabled: true, lrclib_fallback: true, genius_fallback: true, romanize: false, translate: false, translate_to: "en".into() }
     }
 }
 

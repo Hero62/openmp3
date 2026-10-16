@@ -49,6 +49,7 @@
   <section class="mp3-set-group">
     <h2>Lyrics</h2>
     <label class="mp3-set-row"><span>Fall back to LRCLIB<small>When Spotify has no lyrics</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.lrclibFallback}}checked{{/if}} data-action="setting" data-setting="lyrics.lrclibFallback"></label>
+    <label class="mp3-set-row"><span>Fall back to Genius<small>When neither has them. Plain lyrics, not synced.</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.geniusFallback}}checked{{/if}} data-action="setting" data-setting="lyrics.geniusFallback"></label>
     <label class="mp3-set-row"><span>Romanize<small>Show Latin-script readings (done on this PC)</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.romanize}}checked{{/if}} data-action="setting" data-setting="lyrics.romanize"></label>
     <label class="mp3-set-row"><span>Translate<small>Off by default. Sends lyric lines to an online translation service.</small></span><input type="checkbox" class="mp3-switch" {{#if s.lyrics.translate}}checked{{/if}} data-action="setting" data-setting="lyrics.translate"></label>
     <label class="mp3-set-row"><span>Translate to</span><input type="text" maxlength="5" value="{{s.lyrics.translateTo}}" data-action="setting" data-setting="lyrics.translateTo" style="width:64px"></label>
